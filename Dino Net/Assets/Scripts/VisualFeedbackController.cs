@@ -18,6 +18,9 @@ namespace DinoNet
         [SerializeField, Tooltip("Optional. Shown briefly on delivery (e.g. a 'Task Complete!' icon/callout).")]
         GameObject m_TaskCompleteUi;
 
+        [SerializeField, Tooltip("Optional. Played once on delivery (e.g. a success chime/fanfare).")]
+        AudioSource m_DeliverySound;
+
         [SerializeField]
         float m_FeedbackDuration = 2f;
 
@@ -27,6 +30,9 @@ namespace DinoNet
         {
             if (m_Animator != null)
                 m_Animator.SetTrigger(k_SuccessTrigger);
+
+            if (m_DeliverySound != null)
+                m_DeliverySound.Play();
 
             if (m_PowerUpVfx != null)
                 StartCoroutine(ShowThenHide(m_PowerUpVfx));
