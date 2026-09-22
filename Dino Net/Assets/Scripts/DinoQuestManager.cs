@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -77,6 +78,51 @@ namespace DinoNet
         float m_SearchTimer;
         QuestNode m_WrongNodeLatch;
         Coroutine m_BannerRoutine;
+        bool m_Halted;
+
+        /// <summary>Raised when the child starts the run and the packet appears.</summary>
+        public event Action QuestStarted;
+
+        /// <summary>Raised each time the packet is delivered to the correct next node.</summary>
+        public event Action<QuestNode> NodeConnected;
+
+        /// <summary>Raised when the packet reaches the final destination node.</summary>
+        public event Action QuestCompleted;
+
+        /// <summary>Total nodes on this level's route.</summary>
+        public int RouteCount => m_Route.Count;
+
+        /// <summary>How many route nodes the packet has reached so far.</summary>
+        public int ConnectedCount => m_CurrentIndex;
+
+        /// <summary>The node the packet must reach next, or null once the route is finished.</summary>
+        public QuestNode CurrentTarget => m_State == QuestState.Carrying && m_CurrentIndex < m_Route.Count ? m_Route[m_CurrentIndex] : null;
+
+        public IReadOnlyList<QuestNode> Route => m_Route;
+
+        public bool IsRunning => m_State == QuestState.Carrying && !m_Halted;
+
+        public CarryableOrb Orb => m_Orb;
+
+        /// <summary>Starts the run without needing the podium button (used by the tutorial and level intro).</summary>
+        public void StartQuest() => BeginQuest();
+
+        /// <summary>
+        /// Freezes progression so a level that has already failed cannot still be completed.
+        /// </summary>
+        public void Halt()
+        {
+            m_Halted = true;
+
+            if (m_BannerRoutine != null)
+            {
+                StopCoroutine(m_BannerRoutine);
+                m_BannerRoutine = null;
+            }
+
+            if (m_BannerRoot != null)
+                m_BannerRoot.SetActive(false);
+        }
 
         void Start()
         {
@@ -102,7 +148,7 @@ namespace DinoNet
 
         void Update()
         {
-            if (m_State != QuestState.Carrying || m_Orb == null)
+            if (m_Halted || m_State != QuestState.Carrying || m_Orb == null)
                 return;
 
             var target = m_Route[m_CurrentIndex];
@@ -120,7 +166,7 @@ namespace DinoNet
 
         void BeginQuest()
         {
-            if (m_State != QuestState.WaitingForStart || m_Route.Count == 0)
+            if (m_Halted || m_State != QuestState.WaitingForStart || m_Route.Count == 0)
                 return;
 
             m_State = QuestState.Carrying;
@@ -134,6 +180,7 @@ namespace DinoNet
             }
 
             ShowBanner(m_StartMessage, false);
+            QuestStarted?.Invoke();
         }
 
         void DeliverTo(QuestNode node)
@@ -148,11 +195,13 @@ namespace DinoNet
             m_CurrentIndex++;
             m_SearchTimer = 0f;
             m_WrongNodeLatch = null;
+            NodeConnected?.Invoke(node);
 
             if (isFinal)
             {
                 m_State = QuestState.Complete;
                 ShowBanner(m_CompleteMessage, true);
+                QuestCompleted?.Invoke();
                 return;
             }
 
