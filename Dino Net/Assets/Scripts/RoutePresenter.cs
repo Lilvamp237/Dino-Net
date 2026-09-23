@@ -17,7 +17,7 @@ namespace DinoNet
         [SerializeField, Tooltip("The dinosaur the message is sent from - it lights up as the packet appears.")]
         Renderer m_SourceHighlight;
 
-        [SerializeField, Tooltip("Vine drawn briefly from the source dino to the first node, showing the connection the message will travel.")]
+        [SerializeField, Tooltip("Vine drawn to the node the message is headed for next, showing the connection it still has to travel.")]
         EnergyVineVisual m_PreviewVinePrefab;
 
         [SerializeField]
@@ -28,6 +28,9 @@ namespace DinoNet
 
         [SerializeField]
         Light m_SourceLight;
+
+        [SerializeField, Tooltip("Colour of the not-yet-travelled connection, kept paler than the established vines.")]
+        Color m_PendingColor = new Color(0.55f, 0.85f, 1f, 0.7f);
 
         static readonly int k_EmissionColor = Shader.PropertyToID("_EmissionColor");
 
@@ -60,10 +63,15 @@ namespace DinoNet
         void OnQuestStarted()
         {
             StartCoroutine(SourceHandover());
+            UpdatePendingConnection();
             HighlightTarget();
         }
 
-        void OnNodeConnected(QuestNode node) => HighlightTarget();
+        void OnNodeConnected(QuestNode node)
+        {
+            UpdatePendingConnection();
+            HighlightTarget();
+        }
 
         void OnQuestCompleted()
         {
@@ -71,16 +79,38 @@ namespace DinoNet
                 Destroy(m_PreviewVine.gameObject);
         }
 
-        /// <summary>The source dino glows and a connection appears toward the first node.</summary>
-        IEnumerator SourceHandover()
+        /// <summary>
+        /// Keeps a pale vine stretched from wherever the message is now to the node it still has
+        /// to reach, so the next link in the network is always visible.
+        /// </summary>
+        void UpdatePendingConnection()
         {
+            if (m_PreviewVinePrefab == null)
+                return;
+
             var target = m_Quest.CurrentTarget;
-            if (m_PreviewVinePrefab != null && m_SourceAnchor != null && target != null)
+            if (target == null)
             {
-                m_PreviewVine = Instantiate(m_PreviewVinePrefab, transform);
-                m_PreviewVine.Initialize(m_SourceAnchor, target.VineAnchor);
+                if (m_PreviewVine != null)
+                    Destroy(m_PreviewVine.gameObject);
+                return;
             }
 
+            var connected = m_Quest.ConnectedCount;
+            var from = connected == 0 ? m_SourceAnchor : m_Quest.Route[connected - 1].VineAnchor;
+            if (from == null)
+                return;
+
+            if (m_PreviewVine == null)
+                m_PreviewVine = Instantiate(m_PreviewVinePrefab, transform);
+
+            m_PreviewVine.Initialize(from, target.VineAnchor);
+            m_PreviewVine.SetColor(m_PendingColor);
+        }
+
+        /// <summary>The source dino glows as it hands the message over.</summary>
+        IEnumerator SourceHandover()
+        {
             var elapsed = 0f;
             while (elapsed < m_HighlightSeconds)
             {

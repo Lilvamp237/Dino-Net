@@ -143,8 +143,9 @@ namespace DinoNet
                 forward = Vector3.forward;
             forward.Normalize();
 
+            // This is a plain-transform anchor; its canvas child carries the forward offset.
             panel.transform.SetParent(null, true);
-            panel.transform.position = cam.transform.position + forward * 2.2f + Vector3.up * -0.1f;
+            panel.transform.position = cam.transform.position + Vector3.up * -0.1f;
             panel.transform.rotation = Quaternion.LookRotation(forward, Vector3.up);
         }
 
