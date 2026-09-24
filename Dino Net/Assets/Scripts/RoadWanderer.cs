@@ -43,6 +43,11 @@ namespace DinoNet
         [SerializeField, Tooltip("Which layers count as solid. Floors are ignored automatically by their flatness.")]
         LayerMask m_ObstacleMask = 1;
 
+        [SerializeField, Tooltip("How much room to leave around the player. The rig sits on a layer the physics queries skip, so it's handled separately.")]
+        float m_PlayerClearance = 1.1f;
+
+        Transform m_Player;
+
         static readonly Collider[] s_Overlap = new Collider[24];
 
         readonly List<Vector3> m_Path = new List<Vector3>();
@@ -163,6 +168,20 @@ namespace DinoNet
 
                 var strength = Mathf.Clamp01(1f - (distance - m_BodyRadius) / m_LookAhead);
                 push += away / distance * strength;
+            }
+
+            // The player's rig is on a layer the obstacle mask skips, so steer around them here.
+            if (m_Player == null && Camera.main != null)
+                m_Player = Camera.main.transform;
+
+            if (m_Player != null)
+            {
+                var awayFromPlayer = transform.position - m_Player.position;
+                awayFromPlayer.y = 0f;
+                var gap = awayFromPlayer.magnitude;
+                var keepOut = m_BodyRadius + m_PlayerClearance;
+                if (gap < keepOut && gap > 0.0001f)
+                    push += awayFromPlayer / gap * (1f - gap / keepOut) * 2f;
             }
 
             var heading = (desired + push * m_AvoidStrength).normalized;

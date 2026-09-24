@@ -39,6 +39,14 @@ namespace DinoNet
         [SerializeField, Tooltip("Stops wandering dinosaurs and the packet once the level is over.")]
         bool m_FreezeOnFinish = true;
 
+        [SerializeField, Tooltip("How much faster the clock runs while the child is inside a volcano danger zone.")]
+        float m_DangerTimeMultiplier = 3f;
+
+        DangerZone[] m_DangerZones;
+
+        /// <summary>True while the countdown is being drained faster by a nearby volcano.</summary>
+        public bool InDanger { get; private set; }
+
         public event Action LevelCompleted;
         public event Action LevelFailed;
 
@@ -55,6 +63,7 @@ namespace DinoNet
         void Awake()
         {
             TimeRemaining = m_TimeLimit;
+            m_DangerZones = FindObjectsByType<DangerZone>(FindObjectsSortMode.None);
         }
 
         void OnEnable()
@@ -92,7 +101,18 @@ namespace DinoNet
             if (State != LevelState.Running || !m_UseTimer)
                 return;
 
-            TimeRemaining -= Time.deltaTime;
+            // Standing near a volcano burns the clock faster, so hazards cost something.
+            InDanger = false;
+            foreach (var zone in m_DangerZones)
+            {
+                if (zone != null && zone.PlayerInside)
+                {
+                    InDanger = true;
+                    break;
+                }
+            }
+
+            TimeRemaining -= Time.deltaTime * (InDanger ? m_DangerTimeMultiplier : 1f);
 
             if (TimeRemaining <= 0f)
             {
@@ -101,7 +121,7 @@ namespace DinoNet
             }
 
             if (m_Hud != null)
-                m_Hud.SetTime(TimeRemaining);
+                m_Hud.SetTime(TimeRemaining, InDanger);
         }
 
         void OnQuestStarted()

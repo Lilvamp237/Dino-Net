@@ -78,7 +78,7 @@ namespace DinoNet
                 m_ProgressLabel.text = connected + " / " + total + " nodes";
         }
 
-        public void SetTime(float secondsRemaining)
+        public void SetTime(float secondsRemaining, bool draining = false)
         {
             if (m_TimerLabel == null)
                 return;
@@ -87,7 +87,17 @@ namespace DinoNet
             var minutes = Mathf.FloorToInt(clamped / 60f);
             var seconds = Mathf.FloorToInt(clamped % 60f);
             m_TimerLabel.text = string.Format("{0}:{1:00}", minutes, seconds);
-            m_TimerLabel.color = clamped <= m_UrgentSeconds ? m_TimerUrgentColor : m_TimerNormalColor;
+
+            if (draining)
+            {
+                // Pulsing red makes it obvious the volcano is eating the clock.
+                m_TimerLabel.color = Color.Lerp(m_TimerUrgentColor, Color.white, Mathf.PingPong(Time.time * 4f, 1f));
+                m_TimerLabel.text += " !";
+            }
+            else
+            {
+                m_TimerLabel.color = clamped <= m_UrgentSeconds ? m_TimerUrgentColor : m_TimerNormalColor;
+            }
         }
 
         public void SetTimerVisible(bool visible)

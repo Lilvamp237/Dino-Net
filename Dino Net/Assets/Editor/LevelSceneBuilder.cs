@@ -39,6 +39,9 @@ namespace DinoNetEditor
             /// <summary>The scene's second directional light, which otherwise washes out every mood.</summary>
             public Color fill = new Color(0.62f, 0.68f, 1f);
             public float fillIntensity = 0.25f;
+
+            /// <summary>Set to reuse an existing sky asset instead of generating a procedural one.</summary>
+            public string skyboxAsset;
         }
 
         /// <summary>Route node names per level, in visit order. Level index = nodes - 1.</summary>
@@ -71,11 +74,13 @@ namespace DinoNetEditor
                                   skyTint = new Color(0.85f, 0.5f, 0.35f), groundTint = new Color(0.35f, 0.25f, 0.2f), skyExposure = 1.0f,
                                   fill = new Color(0.75f, 0.55f, 0.85f), fillIntensity = 0.3f } },
 
-            { 4, new Atmosphere { name = "Night", sun = new Color(0.45f, 0.55f, 0.85f), sunIntensity = 0.35f,
-                                  sunAngles = new Vector3(65f, 160f, 0f), ambient = new Color(0.16f, 0.19f, 0.28f),
-                                  fog = new Color(0.08f, 0.11f, 0.2f), fogDensity = 0.012f,
+            // Level 4 reuses the original scene's purple starry sky rather than a generated one.
+            { 4, new Atmosphere { name = "Twilight night", sun = new Color(0.45f, 0.55f, 0.85f), sunIntensity = 0.35f,
+                                  sunAngles = new Vector3(65f, 160f, 0f), ambient = new Color(0.30f, 0.42f, 0.62f),
+                                  fog = new Color(0.42f, 0.24f, 0.40f), fogDensity = 0.016f,
                                   skyTint = new Color(0.16f, 0.22f, 0.38f), groundTint = new Color(0.1f, 0.12f, 0.16f), skyExposure = 0.55f,
-                                  fill = new Color(0.62f, 0.68f, 1f), fillIntensity = 0.8f } },
+                                  fill = new Color(0.62f, 0.68f, 1f), fillIntensity = 0.8f,
+                                  skyboxAsset = "Assets/Twilight/TwilightSky.mat" } },
         };
 
         [MenuItem("DinoNet/Build All Playable Scenes")]
@@ -97,7 +102,7 @@ namespace DinoNetEditor
             var path = k_SceneFolder + "Level" + level + ".unity";
             var scene = Duplicate(path);
 
-            var route = PrepareRoute(k_Routes[level]);
+            var route = PrepareRoute(k_Routes[level], out _);
             PlaceNodesOnJunctions(level, route);
             ApplyAtmosphere(k_Atmospheres[level], level);
             ApplyGroundTint(level, k_Atmospheres[level].groundTint);
@@ -124,6 +129,8 @@ namespace DinoNetEditor
 
             WireHudButtons(hud, manager, null);
             AddRoutePresenter(quest, source);
+            WireConnections(quest, null);
+            FixPlayerCollider();
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, path);
@@ -135,7 +142,8 @@ namespace DinoNetEditor
             var path = k_SceneFolder + "Tutorial.unity";
             var scene = Duplicate(path);
 
-            var tutorialRoute = PrepareRoute(k_Routes[1]);
+            // The tutorial keeps one spare dinosaur as a decoy for the wrong-node lesson.
+            var tutorialRoute = PrepareRoute(k_Routes[1], out var decoy, keepDecoy: true);
             PlaceNodesOnJunctions(1, tutorialRoute);
             ApplyAtmosphere(k_Atmospheres[1], 1);
             ApplyGroundTint(1, k_Atmospheres[1].groundTint);
@@ -163,6 +171,10 @@ namespace DinoNetEditor
 
             WireHudButtons(hud, manager, null);
             AddRoutePresenter(quest, source);
+            WireConnections(quest, decoy);
+            FixPlayerCollider();
+            PlaceDecoyNearRoute(decoy, tutorialRoute);
+            MoveVolcanoWithinReach(tutorialRoute);
 
             var director = holder.AddComponent<TutorialDirector>();
             var panel = BuildTutorialPanel(out var panelText, out var finishPanel);
@@ -173,6 +185,14 @@ namespace DinoNetEditor
             dso.FindProperty("m_PanelRoot").objectReferenceValue = panel;
             dso.FindProperty("m_PanelText").objectReferenceValue = panelText;
             dso.FindProperty("m_FinishPanel").objectReferenceValue = finishPanel;
+            dso.FindProperty("m_DecoyNode").objectReferenceValue = decoy;
+
+            // Prefer the actual volcano for the "stay away" lesson, not one of the T-Rex hazards.
+            var start = tutorialRoute.Count > 0 ? tutorialRoute[0].transform.position : Vector3.zero;
+            var zones = Object.FindObjectsByType<DangerZone>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var volcano = zones.FirstOrDefault(z => z.name.IndexOf("Volcano", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                ?? zones.OrderBy(z => Vector3.Distance(z.transform.position, start)).FirstOrDefault();
+            dso.FindProperty("m_Volcano").objectReferenceValue = volcano;
             dso.ApplyModifiedPropertiesWithoutUndo();
 
             WireTutorialButtons(finishPanel, director);
@@ -194,9 +214,15 @@ namespace DinoNetEditor
             return EditorSceneManager.OpenScene(destination, OpenSceneMode.Single);
         }
 
-        /// <summary>Cuts the 7-node Demo route down to this level's nodes and deletes the rest.</summary>
-        static List<QuestNode> PrepareRoute(string[] names)
+        /// <summary>
+        /// Cuts the 7-node Demo route down to this level's nodes. Surplus node dinosaurs are not
+        /// thrown away - they become wandering NPCs, which fills the world with life and makes the
+        /// point that not every dinosaur is part of the route. One can be held back as a decoy for
+        /// the tutorial's wrong-node lesson.
+        /// </summary>
+        static List<QuestNode> PrepareRoute(string[] names, out QuestNode decoy, bool keepDecoy = false)
         {
+            decoy = null;
             var all = Object.FindObjectsByType<QuestNode>(FindObjectsInactive.Include, FindObjectsSortMode.None).ToList();
             var keep = new List<QuestNode>();
             foreach (var n in names)
@@ -206,8 +232,18 @@ namespace DinoNetEditor
                     keep.Add(node);
             }
 
-            foreach (var node in all.Where(q => !keep.Contains(q)).ToList())
-                Object.DestroyImmediate(node.gameObject);
+            var surplus = all.Where(q => !keep.Contains(q)).ToList();
+
+            if (keepDecoy && surplus.Count > 0 && keep.Count > 0)
+            {
+                // The decoy should be somewhere the child can plausibly wander to.
+                var firstStop = keep[0].transform.position;
+                decoy = surplus.OrderBy(q => Vector3.Distance(q.transform.position, firstStop)).First();
+                surplus.Remove(decoy);
+            }
+
+            foreach (var node in surplus)
+                ConvertToWanderingNpc(node);
 
             var quest = Object.FindFirstObjectByType<DinoQuestManager>();
             if (quest != null)
@@ -224,6 +260,39 @@ namespace DinoNetEditor
                 glow.enabled = false;
 
             return keep;
+        }
+
+        /// <summary>
+        /// Turns a spare node dinosaur into a wandering NPC: drops its node markers and gives it
+        /// the same road-walking behaviour the other roaming dinos already use.
+        /// </summary>
+        static void ConvertToWanderingNpc(QuestNode node)
+        {
+            var go = node.gameObject;
+
+            // Strip the things that made it look like a route node.
+            foreach (var childName in new[] { "NodeRing", "CelebrationVfx", "DeliveryAnchor", "VineAnchor" })
+            {
+                var child = go.transform.Find(childName);
+                if (child != null)
+                    Object.DestroyImmediate(child.gameObject);
+            }
+
+            Object.DestroyImmediate(node);
+
+            var reaction = go.GetComponent<NodeArrivalReaction>();
+            if (reaction != null)
+                Object.DestroyImmediate(reaction);
+
+            var wanderer = go.GetComponent<RoadWanderer>();
+            if (wanderer == null)
+                wanderer = go.AddComponent<RoadWanderer>();
+
+            var so = new SerializedObject(wanderer);
+            so.FindProperty("m_Network").objectReferenceValue = Object.FindFirstObjectByType<RoadNetwork>();
+            so.FindProperty("m_Animation").objectReferenceValue = go.GetComponent<Animation>();
+            so.FindProperty("m_WalkSpeed").floatValue = Random.Range(0.8f, 1.5f);
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         static void SetList(Object target, string property, List<Object> values)
@@ -264,6 +333,19 @@ namespace DinoNetEditor
             RenderSettings.fogMode = FogMode.ExponentialSquared;
             RenderSettings.fogColor = atmosphere.fog;
             RenderSettings.fogDensity = atmosphere.fogDensity;
+
+            // Some levels reuse an authored sky asset (shared read-only, never modified here).
+            if (!string.IsNullOrEmpty(atmosphere.skyboxAsset))
+            {
+                var authored = AssetDatabase.LoadAssetAtPath<Material>(atmosphere.skyboxAsset);
+                if (authored != null)
+                {
+                    RenderSettings.skybox = authored;
+                    return;
+                }
+
+                Debug.LogWarning("[DinoNet] Sky asset not found: " + atmosphere.skyboxAsset + " - falling back to a generated sky.");
+            }
 
             // Each level gets its own sky material so restyling one never touches another.
             var skyPath = "Assets/Materials/Sky_Level" + level + ".mat";
@@ -662,6 +744,57 @@ namespace DinoNetEditor
             return worldRadius;
         }
 
+        /// <summary>
+        /// Points the quest manager at the road graph and the floor-strand prefab, so each
+        /// connection is laid along the real roads the moment a node is reached.
+        /// </summary>
+        static void WireConnections(DinoQuestManager quest, QuestNode decoy)
+        {
+            if (quest == null)
+                return;
+
+            var so = new SerializedObject(quest);
+            so.FindProperty("m_Roads").objectReferenceValue = Object.FindFirstObjectByType<RoadNetwork>();
+            so.FindProperty("m_ConnectionPrefab").objectReferenceValue = LoadOrCreateConnectionPrefab();
+            so.FindProperty("m_ConnectionMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Twilight/EnergyRoad.mat");
+
+            // The old above-floor vine is gone; connections are floor strands now.
+            var legacyVine = so.FindProperty("m_VinePrefab");
+            if (legacyVine != null)
+                legacyVine.objectReferenceValue = null;
+
+            var decoys = so.FindProperty("m_DecoyNodes");
+            decoys.arraySize = decoy != null ? 1 : 0;
+            if (decoy != null)
+                decoys.GetArrayElementAtIndex(0).objectReferenceValue = decoy;
+
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        static NetworkConnection LoadOrCreateConnectionPrefab()
+        {
+            const string path = "Assets/Prefabs/NetworkConnection.prefab";
+            var existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (existing != null)
+                return existing.GetComponent<NetworkConnection>();
+
+            var temp = new GameObject("NetworkConnection");
+            var line = temp.AddComponent<LineRenderer>();
+            line.useWorldSpace = true;
+            line.alignment = LineAlignment.TransformZ;
+            line.widthMultiplier = 0.55f;
+            line.numCapVertices = 4;
+            line.numCornerVertices = 4;
+            line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            line.receiveShadows = false;
+            line.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Twilight/EnergyRoad.mat");
+            temp.AddComponent<NetworkConnection>();
+
+            var saved = PrefabUtility.SaveAsPrefabAsset(temp, path);
+            Object.DestroyImmediate(temp);
+            return saved.GetComponent<NetworkConnection>();
+        }
+
         /// <summary>Gives every node dinosaur a happy hop for when the message reaches it.</summary>
         static void AddArrivalReactions()
         {
@@ -728,6 +861,95 @@ namespace DinoNetEditor
             }
         }
 
+        /// <summary>
+        /// In the tutorial only, brings the volcano and its hazard ring within a short walk so the
+        /// "stay away" lesson is actually reachable. Skipped if no safe spot clears the route.
+        /// </summary>
+        static void MoveVolcanoWithinReach(List<QuestNode> route)
+        {
+            var zone = Object.FindObjectsByType<DangerZone>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .FirstOrDefault(z => z.name.IndexOf("Volcano", System.StringComparison.OrdinalIgnoreCase) >= 0);
+            var mesh = GameObject.Find("Volcano by Poly by Google - 8gkFBBcS6aM");
+            var podium = GameObject.Find("Start Podium");
+            if (zone == null || podium == null)
+                return;
+
+            var radius = new SerializedObject(zone).FindProperty("m_Radius").floatValue;
+            var start = podium.transform.position;
+
+            // Try a few spots around the podium and take the first that clears every node.
+            for (var angle = 0; angle < 360; angle += 30)
+            {
+                var rad = angle * Mathf.Deg2Rad;
+                var candidate = start + new Vector3(Mathf.Cos(rad), 0f, Mathf.Sin(rad)) * (radius + 6f);
+
+                var clearsNodes = route.All(n => Vector3.Distance(
+                    new Vector3(candidate.x, 0f, candidate.z),
+                    new Vector3(n.transform.position.x, 0f, n.transform.position.z)) > radius + 5f);
+                var clearsPodium = Vector3.Distance(candidate, start) > radius + 3f;
+
+                if (!clearsNodes || !clearsPodium)
+                    continue;
+
+                var delta = new Vector3(candidate.x - zone.transform.position.x, 0f, candidate.z - zone.transform.position.z);
+                zone.transform.position += delta;
+                if (mesh != null)
+                {
+                    mesh.transform.position += delta;
+                    SnapToGround(mesh);
+                }
+
+                Debug.Log("[DinoNet] Tutorial volcano moved to " + zone.transform.position.ToString("F1")
+                    + " (" + Vector3.Distance(zone.transform.position, start).ToString("F1") + "m from the podium).");
+                return;
+            }
+
+            Debug.LogWarning("[DinoNet] No clear spot for the tutorial volcano - left where it was.");
+        }
+
+        /// <summary>Stands the decoy dinosaur within easy reach of the route so the lesson is quick.</summary>
+        static void PlaceDecoyNearRoute(QuestNode decoy, List<QuestNode> route)
+        {
+            if (decoy == null || route.Count == 0)
+                return;
+
+            var podium = GameObject.Find("Start Podium");
+            var from = podium != null ? podium.transform.position : Vector3.zero;
+            var to = route[0].transform.position;
+
+            // Off to one side of the walk between the podium and the first real node.
+            var along = to - from;
+            along.y = 0f;
+            var side = Vector3.Cross(along.normalized, Vector3.up);
+            var spot = from + along * 0.55f + side * 5f;
+
+            decoy.transform.position = new Vector3(spot.x, decoy.transform.position.y, spot.z);
+            var look = from - decoy.transform.position;
+            look.y = 0f;
+            if (look.sqrMagnitude > 0.001f)
+                decoy.transform.rotation = Quaternion.LookRotation(look.normalized, Vector3.up);
+
+            SnapToGround(decoy.gameObject);
+            Debug.Log("[DinoNet] Tutorial decoy " + decoy.name + " at " + decoy.transform.position.ToString("F1"));
+        }
+
+        /// <summary>
+        /// The rig ships with a 0.1m capsule, which is thin enough to slip between a dinosaur's
+        /// legs. Widens it so the player bumps into things, without being so fat they snag.
+        /// </summary>
+        static void FixPlayerCollider()
+        {
+            var xr = GameObject.Find("Complete XR Origin Set Up Variant");
+            var controller = xr != null ? xr.GetComponent<CharacterController>() : null;
+            if (controller == null)
+                return;
+
+            controller.radius = 0.28f;
+            controller.skinWidth = 0.03f;
+            controller.stepOffset = 0.4f;
+            controller.detectCollisions = true;
+        }
+
         /// <summary>Stands the source dinosaur beside the podium so the packet visibly comes from it.</summary>
         static Renderer SetUpSourceDino()
         {
@@ -787,11 +1009,10 @@ namespace DinoNetEditor
             if (presenter == null)
                 presenter = quest.gameObject.AddComponent<RoutePresenter>();
 
-            var vine = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/EnergyVine.prefab");
+            // No route preview any more - the firefly is the hint, so only the sender is lit.
             var so = new SerializedObject(presenter);
             so.FindProperty("m_Quest").objectReferenceValue = quest;
             so.FindProperty("m_SourceHighlight").objectReferenceValue = sourceRing;
-            so.FindProperty("m_PreviewVinePrefab").objectReferenceValue = vine != null ? vine.GetComponent<EnergyVineVisual>() : null;
             so.FindProperty("m_SourceAnchor").objectReferenceValue = sourceRing != null ? sourceRing.transform : null;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
