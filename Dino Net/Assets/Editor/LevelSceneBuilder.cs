@@ -132,6 +132,10 @@ namespace DinoNetEditor
             WireConnections(quest, null);
             FixPlayerCollider();
 
+            // The networking lesson sits on top of the finished level rather than replacing any
+            // of it: same nodes, same packet, same firefly, with decisions along the route.
+            LessonContentBuilder.Apply(level, quest, manager, hud, levelManagerHolder);
+
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, path);
             Debug.Log("[DinoNet] Built " + path + " with " + route.Count + " nodes (" + k_Atmospheres[level].name + ").");
@@ -1079,11 +1083,13 @@ namespace DinoNetEditor
             var timerLabel = Label(timerPanel, "Label", "5:00", 60, TextAlignmentOptions.Center, new Vector4(10f, 6f, 10f, 6f));
 
             var completePanel = BuildResultPanel(cam.transform, "Level Complete Panel", "Level Complete!", new Color(0.05f, 0.3f, 0.15f, 0.92f),
-                new[] { "Next Level", "Play Again", "Return to Main Menu" }, out var completeButtons, out _);
+                new[] { "Next Level", "Play Again", "Return to Main Menu" }, out var completeButtons, out _,
+                height: 1020f, firstButtonY: -626f);
             var failedPanel = BuildResultPanel(cam.transform, "Level Failed Panel", "Level Failed!", new Color(0.35f, 0.06f, 0.05f, 0.92f),
                 new[] { "Try Again", "Return to Main Menu" }, out var failedButtons, out var failedReason);
 
             var hso = new SerializedObject(hud);
+            hso.FindProperty("m_HudRoot").objectReferenceValue = hudRoot;
             hso.FindProperty("m_ProgressFill").objectReferenceValue = fillImage;
             hso.FindProperty("m_ProgressLabel").objectReferenceValue = progressLabel;
             hso.FindProperty("m_TimerRoot").objectReferenceValue = timerPanel.gameObject;
@@ -1137,7 +1143,7 @@ namespace DinoNetEditor
         }
 
         static GameObject BuildResultPanel(Transform parent, string name, string title, Color colour, string[] buttonLabels,
-            out Button[] buttons, out TMP_Text reasonLabel)
+            out Button[] buttons, out TMP_Text reasonLabel, float height = 620f, float firstButtonY = -325f)
         {
             // The canvas lives under a plain-Transform anchor. Moving a RectTransform directly is
             // unreliable - its position setter routes through anchoredPosition and silently drops
@@ -1156,7 +1162,7 @@ namespace DinoNetEditor
             canvas.renderMode = RenderMode.WorldSpace;
             root.AddComponent<TrackedDeviceGraphicRaycaster>();
             var rt = root.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(900f, 620f);
+            rt.sizeDelta = new Vector2(900f, height);
             rt.localScale = Vector3.one * 0.0016f;
 
             var bg = new GameObject("Background", typeof(Image));
@@ -1182,7 +1188,7 @@ namespace DinoNetEditor
 
             buttons = new Button[buttonLabels.Length];
             for (var i = 0; i < buttonLabels.Length; i++)
-                buttons[i] = BuildButton(root.transform, buttonLabels[i], new Vector2(0f, -325f - i * 105f));
+                buttons[i] = BuildButton(root.transform, buttonLabels[i], new Vector2(0f, firstButtonY - i * 105f));
 
             return anchor;
         }

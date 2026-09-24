@@ -30,7 +30,17 @@ namespace DinoNet
         [SerializeField]
         float m_UrgentSeconds = 30f;
 
+        [Header("Concept (top centre)")]
+        [SerializeField, Tooltip("Names the networking idea this level teaches, using the real terms, so what is being taught is visible on screen.")]
+        TMP_Text m_ConceptTitle;
+
+        [SerializeField, Tooltip("Updated as each decision is answered, e.g. \"HTTPS - secure connection\".")]
+        TMP_Text m_ConceptResult;
+
         [Header("End of level")]
+        [SerializeField, Tooltip("Hidden once an end-of-level panel is up. The HUD sits closer to the eye than the panel and would otherwise draw straight through it.")]
+        GameObject m_HudRoot;
+
         [SerializeField]
         GameObject m_CompletePanel;
 
@@ -100,6 +110,13 @@ namespace DinoNet
             }
         }
 
+        /// <summary>Records the concept the child has just used, e.g. "HTTPS - secure connection".</summary>
+        public void SetConcept(string result)
+        {
+            if (m_ConceptResult != null)
+                m_ConceptResult.text = result;
+        }
+
         public void SetTimerVisible(bool visible)
         {
             if (m_TimerRoot != null)
@@ -115,6 +132,7 @@ namespace DinoNet
             {
                 Anchor(m_CompletePanel);
                 m_CompletePanel.SetActive(true);
+                HideHud();
             }
 
             if (m_CelebrationVfx != null)
@@ -132,32 +150,19 @@ namespace DinoNet
             {
                 Anchor(m_FailedPanel);
                 m_FailedPanel.SetActive(true);
+                HideHud();
             }
 
             Play(m_FailedClip);
         }
 
-        /// <summary>
-        /// Drops the panel into world space just in front of the player and leaves it there, so
-        /// it stays still to point at instead of drifting with every head movement.
-        /// </summary>
-        static void Anchor(GameObject panel)
+        void HideHud()
         {
-            var cam = Camera.main;
-            if (cam == null)
-                return;
-
-            var forward = cam.transform.forward;
-            forward.y = 0f;
-            if (forward.sqrMagnitude < 0.001f)
-                forward = Vector3.forward;
-            forward.Normalize();
-
-            // This is a plain-transform anchor; its canvas child carries the forward offset.
-            panel.transform.SetParent(null, true);
-            panel.transform.position = cam.transform.position + Vector3.up * -0.1f;
-            panel.transform.rotation = Quaternion.LookRotation(forward, Vector3.up);
+            if (m_HudRoot != null)
+                m_HudRoot.SetActive(false);
         }
+
+        static void Anchor(GameObject panel) => PanelAnchor.PlaceInFront(panel);
 
         void Play(AudioClip clip)
         {

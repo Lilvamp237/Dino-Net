@@ -117,6 +117,15 @@ namespace DinoNet
 
         public CarryableOrb Orb => m_Orb;
 
+        /// <summary>
+        /// While true the packet cannot be delivered, so a networking question can be answered
+        /// before the route continues. The child keeps hold of the packet throughout.
+        /// </summary>
+        public bool DeliveryPaused { get; set; }
+
+        /// <summary>Puts a line on the quest banner. Used by the lesson director.</summary>
+        public void Announce(string message) => ShowBanner(message, false);
+
         /// <summary>Starts the run without needing the podium button (used by the tutorial and level intro).</summary>
         public void StartQuest() => BeginQuest();
 
@@ -161,7 +170,7 @@ namespace DinoNet
 
         void Update()
         {
-            if (m_Halted || m_State != QuestState.Carrying || m_Orb == null)
+            if (m_Halted || DeliveryPaused || m_State != QuestState.Carrying || m_Orb == null)
                 return;
 
             var target = m_Route[m_CurrentIndex];

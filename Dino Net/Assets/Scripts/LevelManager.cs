@@ -47,6 +47,14 @@ namespace DinoNet
         /// <summary>True while the countdown is being drained faster by a nearby volcano.</summary>
         public bool InDanger { get; private set; }
 
+        /// <summary>
+        /// True while a networking question is on screen. The countdown holds, so nobody loses
+        /// the level for taking their time over a decision.
+        /// </summary>
+        public bool IsPaused { get; private set; }
+
+        public void SetPaused(bool paused) => IsPaused = paused;
+
         public event Action LevelCompleted;
         public event Action LevelFailed;
 
@@ -98,7 +106,7 @@ namespace DinoNet
 
         void Update()
         {
-            if (State != LevelState.Running || !m_UseTimer)
+            if (State != LevelState.Running || !m_UseTimer || IsPaused)
                 return;
 
             // Standing near a volcano burns the clock faster, so hazards cost something.
