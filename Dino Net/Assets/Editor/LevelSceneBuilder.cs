@@ -51,6 +51,19 @@ namespace DinoNetEditor
             { 2, new[] { "Hub_A", "Hub_B", "Triceratops_EndUser" } },
             { 3, new[] { "Hub_A", "Hub_B", "Node_C", "Triceratops_EndUser" } },
             { 4, new[] { "Hub_A", "Hub_B", "Node_C", "Node_D", "Triceratops_EndUser" } },
+            { 5, new[] { "Hub_A", "Hub_B", "Node_C", "Triceratops_EndUser" } },
+            { 6, new[] { "Hub_A", "Hub_B", "Node_C", "Node_D", "Triceratops_EndUser" } },
+            { 7, new[] { "Hub_A", "Hub_B", "Node_C", "Triceratops_EndUser" } },
+            { 8, new[] { "Hub_A", "Hub_B", "Node_C", "Node_D", "Triceratops_EndUser" } },
+            { 9, new[] { "Hub_A", "Hub_B", "Node_C", "Node_D", "Triceratops_EndUser" } },
+            { 10, new[] { "Hub_A", "Node_E", "Hub_B", "Node_C", "Node_D", "Node_F", "Triceratops_EndUser" } },
+        };
+
+        /// <summary>Countdown per level in seconds; later levels ask more questions so they get more time.</summary>
+        static readonly Dictionary<int, float> k_TimeLimits = new Dictionary<int, float>
+        {
+            { 1, 300f }, { 2, 300f }, { 3, 300f }, { 4, 300f },
+            { 5, 330f }, { 6, 360f }, { 7, 330f }, { 8, 360f }, { 9, 390f }, { 10, 480f },
         };
 
         static readonly Dictionary<int, Atmosphere> k_Atmospheres = new Dictionary<int, Atmosphere>
@@ -81,12 +94,48 @@ namespace DinoNetEditor
                                   skyTint = new Color(0.16f, 0.22f, 0.38f), groundTint = new Color(0.1f, 0.12f, 0.16f), skyExposure = 0.55f,
                                   fill = new Color(0.62f, 0.68f, 1f), fillIntensity = 0.8f,
                                   skyboxAsset = "Assets/Twilight/TwilightSky.mat" } },
+
+            { 5, new Atmosphere { name = "Golden hour", sun = new Color(1f, 0.85f, 0.5f), sunIntensity = 1.4f,
+                                  sunAngles = new Vector3(28f, 60f, 0f), ambient = new Color(0.7f, 0.62f, 0.5f),
+                                  fog = new Color(0.95f, 0.8f, 0.55f), fogDensity = 0.006f,
+                                  fill = new Color(1f, 0.85f, 0.6f), fillIntensity = 0.3f,
+                                  skyboxAsset = "Assets/Materials/PrehistoricSky_Level5.mat" } },
+
+            { 6, new Atmosphere { name = "Misty dawn", sun = new Color(1f, 0.85f, 0.85f), sunIntensity = 1.1f,
+                                  sunAngles = new Vector3(15f, -40f, 0f), ambient = new Color(0.66f, 0.64f, 0.74f),
+                                  fog = new Color(0.85f, 0.82f, 0.9f), fogDensity = 0.011f,
+                                  fill = new Color(0.85f, 0.8f, 1f), fillIntensity = 0.35f,
+                                  skyboxAsset = "Assets/Materials/PrehistoricSky_Level6.mat" } },
+
+            { 7, new Atmosphere { name = "Bright noon", sun = new Color(1f, 0.98f, 0.9f), sunIntensity = 1.7f,
+                                  sunAngles = new Vector3(70f, 20f, 0f), ambient = new Color(0.8f, 0.84f, 0.9f),
+                                  fog = new Color(0.8f, 0.92f, 1f), fogDensity = 0.0025f,
+                                  fill = new Color(1f, 1f, 0.95f), fillIntensity = 0.3f,
+                                  skyboxAsset = "Assets/Materials/PrehistoricSky_Level7.mat" } },
+
+            { 8, new Atmosphere { name = "Stormy dusk", sun = new Color(1f, 0.4f, 0.2f), sunIntensity = 0.95f,
+                                  sunAngles = new Vector3(10f, 190f, 0f), ambient = new Color(0.5f, 0.34f, 0.34f),
+                                  fog = new Color(0.6f, 0.28f, 0.25f), fogDensity = 0.01f,
+                                  fill = new Color(0.8f, 0.4f, 0.5f), fillIntensity = 0.35f,
+                                  skyboxAsset = "Assets/Materials/PrehistoricSky_Level8.mat" } },
+
+            { 9, new Atmosphere { name = "Deep night", sun = new Color(0.4f, 0.45f, 0.8f), sunIntensity = 0.3f,
+                                  sunAngles = new Vector3(60f, 150f, 0f), ambient = new Color(0.28f, 0.34f, 0.55f),
+                                  fog = new Color(0.18f, 0.2f, 0.4f), fogDensity = 0.014f,
+                                  fill = new Color(0.5f, 0.6f, 1f), fillIntensity = 0.7f,
+                                  skyboxAsset = "Assets/Materials/PrehistoricSky_Level9.mat" } },
+
+            { 10, new Atmosphere { name = "Twilight finale", sun = new Color(0.9f, 0.5f, 0.35f), sunIntensity = 0.6f,
+                                   sunAngles = new Vector3(12f, 160f, 0f), ambient = new Color(0.32f, 0.36f, 0.5f),
+                                   fog = new Color(0.42f, 0.24f, 0.4f), fogDensity = 0.016f,
+                                   fill = new Color(0.62f, 0.68f, 1f), fillIntensity = 0.8f,
+                                   skyboxAsset = "Assets/Materials/PrehistoricSky_Level10.mat" } },
         };
 
         [MenuItem("DinoNet/Build All Playable Scenes")]
         public static void BuildAll()
         {
-            for (var level = 1; level <= 4; level++)
+            for (var level = 1; level <= GameFlow.LastLevel; level++)
                 BuildLevel(level);
 
             BuildTutorial();
@@ -123,7 +172,7 @@ namespace DinoNetEditor
             so.FindProperty("m_LevelNumber").intValue = level;
             so.FindProperty("m_Quest").objectReferenceValue = quest;
             so.FindProperty("m_Hud").objectReferenceValue = hud;
-            so.FindProperty("m_TimeLimit").floatValue = 300f;
+            so.FindProperty("m_TimeLimit").floatValue = k_TimeLimits.TryGetValue(level, out var limit) ? limit : 300f;
             so.FindProperty("m_UseTimer").boolValue = true;
             so.ApplyModifiedPropertiesWithoutUndo();
 
@@ -204,6 +253,135 @@ namespace DinoNetEditor
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, path);
             Debug.Log("[DinoNet] Built " + path + " (2 nodes, gameplay-driven steps).");
+        }
+
+        // ------------------------------------------------------------- sandbox
+
+        /// <summary>
+        /// The free-play sandbox: the same world, but no quest or hazards. The dinosaur models are
+        /// kept as hidden templates the sandbox controller copies when the child places a dino.
+        /// </summary>
+        [MenuItem("DinoNet/Build Sandbox Scene")]
+        public static void BuildSandbox()
+        {
+            var path = k_SceneFolder + "Sandbox.unity";
+            var scene = Duplicate(path);
+
+            var templates = new GameObject("Sandbox Templates");
+            var stego = MakeTemplate("Hub_A", "Template_Stego", templates.transform);
+            var para = MakeTemplate("Hub_B", "Template_Parasaurolophus", templates.transform);
+            var trike = MakeTemplate("Triceratops_EndUser", "Template_Triceratops", templates.transform);
+            var raptor = MakeTemplate("Velociraptor", "Template_Raptor", templates.transform);
+            var rex = MakeTemplate("BadNode_T-Rex_West", "Template_Rex", templates.transform);
+
+            // Spare quest dinosaurs become wandering NPCs so the world stays lively.
+            foreach (var node in Object.FindObjectsByType<QuestNode>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            {
+                if (node.transform.IsChildOf(templates.transform))
+                    continue;
+
+                ConvertToWanderingNpc(node);
+            }
+
+            foreach (var name in new[] { "DinoNet Systems", "Start Podium", "Data Packet Orb", "Quest Banner", "Guide Firefly" })
+            {
+                var go = FindByName(name);
+                if (go != null)
+                    Object.DestroyImmediate(go);
+            }
+
+            // No hazards in free play: a calm place to experiment.
+            foreach (var zone in Object.FindObjectsByType<DangerZone>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (zone != null)
+                    Object.DestroyImmediate(zone.gameObject);
+            }
+
+            foreach (var bad in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (bad != null && bad.name.StartsWith("BadNode_") && !bad.IsChildOf(templates.transform))
+                    Object.DestroyImmediate(bad.gameObject);
+            }
+
+            foreach (var legacy in Object.FindObjectsByType<NetworkNode>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                Object.DestroyImmediate(legacy);
+
+            var atmosphere = new Atmosphere
+            {
+                name = "Sandbox",
+                sun = new Color(1f, 0.95f, 0.85f), sunIntensity = 1.6f, sunAngles = new Vector3(55f, 20f, 0f),
+                ambient = new Color(0.8f, 0.82f, 0.86f), fog = new Color(0.9f, 0.88f, 0.75f), fogDensity = 0.0035f,
+                groundTint = new Color(0.5f, 0.54f, 0.4f), fill = new Color(1f, 0.97f, 0.9f), fillIntensity = 0.32f,
+                skyboxAsset = "Assets/Materials/PrehistoricSky_Sandbox.mat",
+            };
+            ApplyAtmosphere(atmosphere, 7);
+            ApplyGroundTint(7, atmosphere.groundTint);
+            FixDinoMovement();
+            AddEnvironmentColliders();
+            EnsureEventSystem();
+            FixPlayerCollider();
+
+            var holder = new GameObject("Sandbox");
+            var controller = holder.AddComponent<SandboxController>();
+            var so = new SerializedObject(controller);
+            so.FindProperty("m_TemplateStego").objectReferenceValue = stego;
+            so.FindProperty("m_TemplatePara").objectReferenceValue = para;
+            so.FindProperty("m_TemplateTrike").objectReferenceValue = trike;
+            so.FindProperty("m_TemplateRaptor").objectReferenceValue = raptor;
+            so.FindProperty("m_TemplateRex").objectReferenceValue = rex;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene, path);
+            Debug.Log("[DinoNet] Built " + path + ".");
+        }
+
+        static GameObject FindByName(string name)
+        {
+            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (t != null && t.name == name)
+                    return t.gameObject;
+            }
+
+            return null;
+        }
+
+        /// <summary>A hidden, behaviour-free copy of a dinosaur that the sandbox can stamp out.</summary>
+        static GameObject MakeTemplate(string sourceName, string templateName, Transform parent)
+        {
+            var source = FindByName(sourceName);
+            if (source == null)
+            {
+                Debug.LogWarning("[DinoNet] Sandbox template source not found: " + sourceName);
+                return null;
+            }
+
+            var copy = Object.Instantiate(source);
+            copy.name = templateName;
+            copy.transform.SetParent(parent, true);
+
+            foreach (var t in new System.Type[]
+            {
+                typeof(QuestNode), typeof(VisualFeedbackController), typeof(NodeArrivalReaction), typeof(RoadWanderer),
+                typeof(NetworkNode), typeof(DinoAnimator),
+                typeof(UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable),
+            })
+            {
+                foreach (var c in copy.GetComponentsInChildren(t, true))
+                    Object.DestroyImmediate(c);
+            }
+
+            // The delivery and vine anchors were only meaningful to the quest.
+            foreach (var childName in new[] { "DeliveryAnchor", "VineAnchor", "ConnectionAnchor" })
+            {
+                var child = copy.transform.Find(childName);
+                if (child != null)
+                    Object.DestroyImmediate(child.gameObject);
+            }
+
+            copy.SetActive(false);
+            return copy;
         }
 
         // ------------------------------------------------------------- scene plumbing
@@ -1330,7 +1508,8 @@ namespace DinoNetEditor
             // previously flung the panel ~851m into the sky. MainMenuController places it in front
             // of the real headset on the first frame instead.
             var panel = BuildResultPanel(null, "Main Menu Panel", "Dino Net", new Color(0.05f, 0.18f, 0.3f, 0.93f),
-                new[] { "Play Game", "Play Tutorial", "Exit" }, out var buttons, out var subtitle);
+                new[] { "Play Game", "Choose Level", "My Progress", "Play Tutorial", "Sandbox", "Exit" }, out var buttons, out var subtitle,
+                height: 960f, firstButtonY: -330f);
             subtitle.text = "Help messages travel through the dino network!";
             panel.SetActive(true);
 
@@ -1351,9 +1530,17 @@ namespace DinoNetEditor
             cso.FindProperty("m_Panel").objectReferenceValue = panel.transform;
             cso.ApplyModifiedPropertiesWithoutUndo();
 
+            var select = holder.AddComponent<LevelSelectMenu>();
+            var sso = new SerializedObject(select);
+            sso.FindProperty("m_MainPanel").objectReferenceValue = panel;
+            sso.ApplyModifiedPropertiesWithoutUndo();
+
             Bind(buttons[0], controller, "PlayGame");
-            Bind(buttons[1], controller, "PlayTutorial");
-            Bind(buttons[2], controller, "ExitGame");
+            Bind(buttons[1], select, "OpenLevels");
+            Bind(buttons[2], select, "OpenProgress");
+            Bind(buttons[3], controller, "PlayTutorial");
+            Bind(buttons[4], controller, "PlaySandbox");
+            Bind(buttons[5], controller, "ExitGame");
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, path);
@@ -1372,6 +1559,13 @@ namespace DinoNetEditor
                 k_SceneFolder + "Level2.unity",
                 k_SceneFolder + "Level3.unity",
                 k_SceneFolder + "Level4.unity",
+                k_SceneFolder + "Level5.unity",
+                k_SceneFolder + "Level6.unity",
+                k_SceneFolder + "Level7.unity",
+                k_SceneFolder + "Level8.unity",
+                k_SceneFolder + "Level9.unity",
+                k_SceneFolder + "Level10.unity",
+                k_SceneFolder + "Sandbox.unity",
                 k_SourceScene,
             };
 

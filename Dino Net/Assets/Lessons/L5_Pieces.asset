@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c647cb138b6de8c4fa36957992eb6dc8, type: 3}
+  m_Name: L5_Pieces
+  m_EditorClassIdentifier: 
+  concept: 1
+  conceptTerm: Packets in pieces
+  triggerAfterNodes: 0
+  speaker: 'The picture is too big to send in one go:'
+  prompt: How should we send it?
+  correctFeedback: Yes! Big messages are split into small pieces called packets.
+  packetLabel: PIECE
+  packetTint: {r: 0.45, g: 0.82, b: 1, a: 1}
+  conceptResult: Packets - messages in pieces
+  options:
+  - label: All at once
+    sublabel: One giant lump.
+    icon: {fileID: 21300000, guid: 9dba6f2976bd6504d8d395242fa8edbd, type: 3}
+    tint: {r: 1, g: 0.72, b: 0.25, a: 1}
+    correct: 0
+    wrongFeedback: Big lumps are slow and easy to lose. Small pieces are better!
+  - label: Small pieces
+    sublabel: Each piece travels by itself.
+    icon: {fileID: 21300000, guid: 64bf893fb91a89c4ca50252f31123966, type: 3}
+    tint: {r: 0.35, g: 1, b: 0.55, a: 1}
+    correct: 1
+    wrongFeedback: 

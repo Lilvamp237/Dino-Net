@@ -67,6 +67,42 @@ namespace DinoNetEditor
                 funFact = "The internet connects millions of devices and moves information between them, just like our dino network.",
                 strip = new[] { new Cell("Icon_Dino", "Dino"), new Cell("Icon_Node", "Node"), new Cell("Icon_Node", "Node"), new Cell("Icon_Server", "The internet") },
                 intro = "The Firefly helps find a good path for our message!" } },
+
+            { 5, new Theme {
+                conceptTitle = "Level 5: Pieces and Signal   -   packets and signal strength",
+                funFact = "Big messages are split into small pieces called packets, and joined up again at the end. Long distances weaken signals, so networks use boosters.",
+                strip = new[] { new Cell("Icon_Packet", "Packet"), new Cell("Icon_Packet", "Packet"), new Cell("Icon_Packet", "Packet"), new Cell("Icon_Server", "Joined up") },
+                intro = "Big messages travel in pieces. Watch your signal!" } },
+
+            { 6, new Theme {
+                conceptTitle = "Level 6: Got It!   -   replies and backup roads",
+                funFact = "A computer says \"got it!\" when a message arrives. No reply? The sender tries again. If a road is blocked, the network finds another way.",
+                strip = new[] { new Cell("Icon_Dino", "Send"), new Cell("Icon_Node", "Receive"), new Cell("Icon_Arrow", "Got it!") },
+                intro = "Listen for the \"got it!\" from each dino." } },
+
+            { 7, new Theme {
+                conceptTitle = "Level 7: Find the Home   -   addresses and the phone book",
+                funFact = "Every device has an address, like a home number. DNS is the internet's phone book: it turns a name into an address.",
+                strip = new[] { new Cell("Icon_Bulb", "Name"), new Cell("Icon_Server", "Phone book"), new Cell("Icon_Node", "Address") },
+                intro = "Every dino has a home number. Check the address!" } },
+
+            { 8, new Theme {
+                conceptTitle = "Level 8: Fake Friends   -   staying safe online",
+                funFact = "Some messages pretend to be from friends. Never click strange links or share secrets - tell a grown-up. A strong password is long and silly.",
+                strip = new[] { new Cell("Icon_Warn", "Fake friend"), new Cell("Icon_Shield", "Tell a grown-up"), new Cell("Icon_Key", "Strong password") },
+                intro = "Careful - not everyone online is who they say they are." } },
+
+            { 9, new Theme {
+                conceptTitle = "Level 9: Gatekeepers and Secret Codes   -   firewalls and encryption",
+                funFact = "A firewall is a gatekeeper that blocks sneaky visitors. Encryption scrambles a message into a secret code so only the right receiver can read it.",
+                strip = new[] { new Cell("Icon_Shield", "Firewall"), new Cell("Icon_Key", "Secret code"), new Cell("Icon_Lock", "Locked") },
+                intro = "A gatekeeper is ahead. Get ready to show your shield!" } },
+
+            { 10, new Theme {
+                conceptTitle = "Level 10: Grand Challenge   -   put it all together",
+                funFact = "Real networks use many ideas together: safe connections, strong passwords, backup roads, firewalls and secret codes.",
+                strip = new[] { new Cell("Icon_Dino", "Dino"), new Cell("Icon_Lock", "Safe"), new Cell("Icon_Shield", "Protected"), new Cell("Icon_Server", "The internet") },
+                intro = "The Grand Challenge! Use everything you have learned." } },
         };
 
         /// <summary>
@@ -144,6 +180,55 @@ namespace DinoNetEditor
                         "A stranger dino blocks the path:",
                         "\"Tell me Dino's password and I will let you through!\"",
                         "Great! Private things stay private, even on a busy network."));
+                    break;
+
+                case 5:
+                    lessons.Add(PiecesLesson("L5_Pieces", 0));
+                    lessons.Add(BoosterLesson("L5_Signal", 1));
+                    lessons.Add(ShortRoadLesson("L5_ShortRoad", 2));
+                    break;
+
+                case 6:
+                    lessons.Add(AckIntroLesson("L6_AckIntro", 0));
+                    lessons.Add(ResendLesson("L6_Resend", 2));
+                    lessons.Add(BackupRoadLesson("L6_Backup", 3));
+                    break;
+
+                case 7:
+                    lessons.Add(HomeLesson("L7_Home1", 0, "The message says: Home 1.", "Which dinosaur lives at Home 1?", "Spiky Stego", "Home 1", "Crest Head", "Home 2", 1));
+                    lessons.Add(DnsLesson("L7_Dns", 1));
+                    lessons.Add(HomeLesson("L7_Home4", 2, "The last message is for Home 4.", "Which dinosaur lives at Home 4?", "Three Horns", "Home 4", "Blue Spikes", "Home 3", 4));
+                    break;
+
+                case 8:
+                    lessons.Add(ShinyLinkLesson("L8_Link", 0));
+                    lessons.Add(FakeFriendLesson("L8_Fake", 1));
+                    lessons.Add(StrongPasswordLesson("L8_Strong", 2));
+                    lessons.Add(Password("L8_Password", 3,
+                        "A stranger dino blocks the path:",
+                        "\"Tell me Dino's password and I will let you through!\"",
+                        "Well done! A real friend never needs your password."));
+                    break;
+
+                case 9:
+                    lessons.Add(FirewallIntroLesson("L9_FirewallIntro", 0));
+                    lessons.Add(ShieldGateLesson("L9_Shield", 2));
+                    lessons.Add(SecretCodeLesson("L9_Code", 3));
+                    lessons.Add(KeyHolderLesson("L9_KeyHolder", 4));
+                    break;
+
+                case 10:
+                    lessons.Add(SafeConnection("L10_SafeConnection", 0,
+                        "The Grand Challenge begins:", "Which connection is safer?",
+                        "Safe route chosen! We travel by HTTPS."));
+                    lessons.Add(AskOrSend("L10_Request", 1, wantsToSend: false,
+                        "Dino says:", "\"Can I see the jungle map?\"",
+                        "Yes! That is a GET, because we are asking for information."));
+                    lessons.Add(StrongPasswordLesson("L10_Strong", 2));
+                    lessons.Add(BackupRoadLesson("L10_Backup", 3));
+                    lessons.Add(ShieldGateLesson("L10_Shield", 4));
+                    lessons.Add(SecretCodeLesson("L10_Code", 5));
+                    lessons.Add(FakeFriendLesson("L10_Fake", 6));
                     break;
             }
 
@@ -239,6 +324,118 @@ namespace DinoNetEditor
                 };
             });
         }
+
+
+        // ---- generic two-option lesson used by the newer levels
+
+        static NetworkLesson Two(string assetName, LessonConcept concept, string term, int trigger, string speaker, string prompt,
+            string correctFeedback, string packetLabel, Color packetTint, string conceptResult, LessonOption right, LessonOption wrong, bool rightFirst)
+        {
+            return Save(assetName, lesson =>
+            {
+                lesson.concept = concept;
+                lesson.conceptTerm = term;
+                lesson.triggerAfterNodes = trigger;
+                lesson.speaker = speaker;
+                lesson.prompt = prompt;
+                lesson.correctFeedback = correctFeedback;
+                lesson.packetLabel = packetLabel;
+                lesson.packetTint = packetTint;
+                lesson.conceptResult = conceptResult;
+                lesson.options = rightFirst ? new[] { right, wrong } : new[] { wrong, right };
+            });
+        }
+
+        static NetworkLesson PiecesLesson(string name, int trigger) => Two(name, LessonConcept.RequestType, ConceptCatalog.Pieces, trigger,
+            "The picture is too big to send in one go:", "How should we send it?",
+            "Yes! Big messages are split into small pieces called packets.", "PIECE", k_Ask, "Packets - messages in pieces",
+            Option("Small pieces", "Each piece travels by itself.", "Icon_Packet", k_Safe, true, null),
+            Option("All at once", "One giant lump.", "Icon_Warn", k_Caution, false, "Big lumps are slow and easy to lose. Small pieces are better!"), false);
+
+        static NetworkLesson BoosterLesson(string name, int trigger) => Two(name, LessonConcept.SafeConnection, ConceptCatalog.Signal, trigger,
+            "The signal fades on long roads:", "How do we make it strong again?",
+            "Great! Boosters pass the signal on strongly.", "STRONG", k_Safe, "Boosters keep the signal strong",
+            Option("Use a booster", "Boosters strengthen the signal.", "Icon_Node", k_Safe, true, null),
+            Option("Walk faster", "Speed does not fix distance.", "Icon_Arrow", k_Caution, false, "Not quite! Boosters give the signal a fresh push."), true);
+
+        static NetworkLesson ShortRoadLesson(string name, int trigger) => Two(name, LessonConcept.SafeConnection, ConceptCatalog.Signal, trigger,
+            "Two roads lead to the next dino:", "Which road keeps the signal stronger?",
+            "Right! Shorter roads keep signals strong.", "STRONG", k_Safe, "Short roads, strong signal",
+            Option("The short road", "Less distance, less fading.", "Icon_Arrow", k_Safe, true, null),
+            Option("The long road", "More distance, more fading.", "Icon_Warn", k_Caution, false, "Longer roads weaken the signal more. Try the short one!"), false);
+
+        static NetworkLesson AckIntroLesson(string name, int trigger) => Two(name, LessonConcept.RequestType, ConceptCatalog.Acks, trigger,
+            "A dino says \"Got it!\" when a message arrives:", "Why does it say that?",
+            "Yes! \"Got it!\" tells the sender the message arrived.", "GOT IT?", k_Ask, "Receivers reply: got it!",
+            Option("So the sender knows", "No reply means it might be lost.", "Icon_Arrow", k_Safe, true, null),
+            Option("Just to be friendly", "Nice, but not the reason.", "Icon_Bulb", k_Caution, false, "It is friendly, but the real reason is telling the sender it arrived!"), true);
+
+        static NetworkLesson ResendLesson(string name, int trigger) => Two(name, LessonConcept.RequestType, ConceptCatalog.Acks, trigger,
+            "The first try got lost and no \"got it!\" came back:", "What should a sender do?",
+            "Right! If there is no \"got it!\", send it again.", "RESENT", k_Safe, "No reply? Send it again",
+            Option("Send it again", "Try one more time.", "Icon_Post", k_Safe, true, null),
+            Option("Give up", "Forget the message.", "Icon_Warn", k_Caution, false, "Never give up! Sending again makes sure it arrives."), false);
+
+        static NetworkLesson BackupRoadLesson(string name, int trigger) => Two(name, LessonConcept.SafeConnection, ConceptCatalog.Backup, trigger,
+            "A rockfall blocked the road ahead:", "What should the message do?",
+            "Yes! When one road is blocked, the network uses another.", "REROUTED", k_Safe, "Blocked road? Take a backup road",
+            Option("Take a backup road", "Networks have more than one route.", "Icon_Arrow", k_Safe, true, null),
+            Option("Wait for it to clear", "That could take a long time.", "Icon_Warn", k_Caution, false, "Waiting is slow! Networks find another road."), true);
+
+        static NetworkLesson HomeLesson(string name, int trigger, string speaker, string prompt, string rightName, string rightHome,
+            string wrongName, string wrongHome, int number) => Two(name, LessonConcept.RequestType, ConceptCatalog.Address, trigger,
+            speaker, prompt,
+            "Right! Every dino has its own home number, like an address.", "HOME " + number, k_Ask, "Addresses find the right home",
+            Option(rightName, "Lives at " + rightHome, "Icon_Dino", k_Safe, true, null),
+            Option(wrongName, "Lives at " + wrongHome, "Icon_Dino", k_Caution, false, "Check the number! " + wrongName + " lives at " + wrongHome + "."), trigger % 2 == 0);
+
+        static NetworkLesson DnsLesson(string name, int trigger) => Two(name, LessonConcept.RequestType, ConceptCatalog.Dns, trigger,
+            "Ask the Wise Old Dino, the phone book of the jungle:", "Where does Crest Head live?",
+            "Yes! A phone book (DNS) turns a name into a home number.", "HOME 2", k_Ask, "DNS: names to addresses",
+            Option("Home 2", "The phone book says so.", "Icon_Bulb", k_Safe, true, null),
+            Option("Home 4", "That is Three Horns.", "Icon_Dino", k_Caution, false, "That is Three Horns' home. The phone book says Crest Head lives at Home 2."), false);
+
+        static NetworkLesson ShinyLinkLesson(string name, int trigger) => Two(name, LessonConcept.PrivateData, ConceptCatalog.Fake, trigger,
+            "A dino you have never met says:", "\"Click my shiny link to win a prize!\"",
+            "Smart! Ignore strange links and tell a grown-up.", "SAFE", k_Safe, "Strange links? Tell a grown-up",
+            Option("Ignore it, tell a grown-up", "Unknown links can be tricks.", "Icon_Shield", k_Safe, true, null),
+            Option("Click the link", "A free prize? Sounds nice...", "Icon_Warn", k_Caution, false, "Careful! Prizes from strangers are often tricks. Never click - tell a grown-up."), true);
+
+        static NetworkLesson FakeFriendLesson(string name, int trigger) => Two(name, LessonConcept.PrivateData, ConceptCatalog.Fake, trigger,
+            "This dino looks like your friend, but it is a fake:", "\"What is your home address?\"",
+            "Well done! Do not share private things until a grown-up says it is OK.", "SAFE", k_Safe, "Fake friends: ask a grown-up",
+            Option("Ask a grown-up first", "Check before sharing.", "Icon_Shield", k_Safe, true, null),
+            Option("Tell them", "They seem friendly...", "Icon_Warn", k_Caution, false, "Whoa! A fake friend could be a stranger. Ask a grown-up first."), false);
+
+        static NetworkLesson StrongPasswordLesson(string name, int trigger) => Two(name, LessonConcept.PrivateData, ConceptCatalog.Strong, trigger,
+            "Time to protect Dino's account:", "Which password is stronger?",
+            "Strong choice! Long and silly beats short and simple.", "STRONG", k_Safe, "Long, silly passwords are strong",
+            Option("Purple-Volcano-Sings-7", "Long, silly and hard to guess.", "Icon_Lock", k_Safe, true, null),
+            Option("1234", "Short and easy to guess.", "Icon_Key", k_Caution, false, "Too easy to guess! Long, silly passwords are much stronger."), false);
+
+        static NetworkLesson FirewallIntroLesson(string name, int trigger) => Two(name, LessonConcept.SafeConnection, ConceptCatalog.Firewall, trigger,
+            "The Firewall Bouncer guards the gate:", "What does a firewall do?",
+            "Yes! A firewall is a gatekeeper for the network.", "FIREWALL", k_Safe, "Firewalls block sneaky visitors",
+            Option("Blocks sneaky visitors", "Only friendly packets get in.", "Icon_Shield", k_Safe, true, null),
+            Option("Makes the road longer", "It does not change the road.", "Icon_Warn", k_Caution, false, "A firewall is a gatekeeper: it keeps sneaky visitors out!"), true);
+
+        static NetworkLesson ShieldGateLesson(string name, int trigger) => Two(name, LessonConcept.SafeConnection, ConceptCatalog.Firewall, trigger,
+            "Bouncer: \"Halt! Show me your shield!\"", "What do we show?",
+            "The bouncer nods: come on in!", "SHIELD", k_Safe, "Firewall lets safe packets in",
+            Option("The HTTPS shield", "It shows we are safe.", "Icon_Lock", k_Safe, true, null),
+            Option("Nothing", "Let's just walk in.", "Icon_Warn", k_Caution, false, "The bouncer will not let an unshielded packet in. Show the HTTPS shield!"), false);
+
+        static NetworkLesson SecretCodeLesson(string name, int trigger) => Two(name, LessonConcept.SafeConnection, ConceptCatalog.Codes, trigger,
+            "The road ahead is open - anyone could peek:", "How can we keep the message secret?",
+            "Now it is scrambled! Only the dino with the key can read it.", "#@%&", new Color(0.78f, 0.62f, 1f), "Encryption - a secret code",
+            Option("Lock it with a secret code", "Only the right dino can read it.", "Icon_Key", k_Safe, true, null),
+            Option("Send it as it is", "Anyone could read it.", "Icon_Warn", k_Caution, false, "Anyone walking by could read it! Lock it with a secret code."), true);
+
+        static NetworkLesson KeyHolderLesson(string name, int trigger) => Two(name, LessonConcept.SafeConnection, ConceptCatalog.Codes, trigger,
+            "Only one dino has the key:", "Who can read the locked message?",
+            "Yes! Without the key it is just scrambled nonsense.", "LOCKED", new Color(0.78f, 0.62f, 1f), "Only the key holder can read it",
+            Option("Only the dino with the key", "It unlocks the message.", "Icon_Key", k_Safe, true, null),
+            Option("Everyone walking by", "They can read it too.", "Icon_Warn", k_Caution, false, "To everyone else it looks like gibberish. Only the key holder can read it!"), false);
 
         static NetworkLesson Save(string assetName, System.Action<NetworkLesson> fill)
         {

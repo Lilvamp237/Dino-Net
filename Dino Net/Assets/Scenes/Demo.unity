@@ -8731,6 +8731,14 @@ MonoBehaviour:
   m_TurnSpeed: 4
   m_RestSeconds: {x: 2, y: 6}
   m_YawOffset: 0
+  m_AvoidObstacles: 0
+  m_BodyRadius: 0.6
+  m_LookAhead: 2.5
+  m_AvoidStrength: 2.5
+  m_ObstacleMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_PlayerClearance: 1.1
 --- !u!1001 &56302462
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17500,6 +17508,14 @@ MonoBehaviour:
   m_TurnSpeed: 4
   m_RestSeconds: {x: 2, y: 6}
   m_YawOffset: 0
+  m_AvoidObstacles: 0
+  m_BodyRadius: 0.6
+  m_LookAhead: 2.5
+  m_AvoidStrength: 2.5
+  m_ObstacleMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_PlayerClearance: 1.1
 --- !u!1001 &125116972
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -61558,6 +61574,14 @@ MonoBehaviour:
   m_TurnSpeed: 4
   m_RestSeconds: {x: 2, y: 6}
   m_YawOffset: 0
+  m_AvoidObstacles: 0
+  m_BodyRadius: 0.6
+  m_LookAhead: 2.5
+  m_AvoidStrength: 2.5
+  m_ObstacleMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_PlayerClearance: 1.1
 --- !u!1001 &646869640
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -65410,6 +65434,7 @@ MonoBehaviour:
   m_Ring: {fileID: 1724205964}
   m_CelebrationVfx: {fileID: 1723286776}
   m_AudioSource: {fileID: 716840942}
+  m_Reaction: {fileID: 0}
   m_IdleColor: {r: 0.25, g: 0.8, b: 1, a: 0.4}
   m_CompletedColor: {r: 0.3, g: 1, b: 0.45, a: 0.55}
   m_WrongColor: {r: 1, g: 0.72, b: 0.25, a: 0.5}
@@ -69576,6 +69601,7 @@ MonoBehaviour:
   m_Ring: {fileID: 2138427506}
   m_CelebrationVfx: {fileID: 866147486}
   m_AudioSource: {fileID: 778107468}
+  m_Reaction: {fileID: 0}
   m_IdleColor: {r: 0.25, g: 0.8, b: 1, a: 0.4}
   m_CompletedColor: {r: 0.3, g: 1, b: 0.45, a: 0.55}
   m_WrongColor: {r: 1, g: 0.72, b: 0.25, a: 0.5}
@@ -123997,6 +124023,7 @@ MonoBehaviour:
   m_Ring: {fileID: 1161345356}
   m_CelebrationVfx: {fileID: 10389440}
   m_AudioSource: {fileID: 1363877242}
+  m_Reaction: {fileID: 0}
   m_IdleColor: {r: 0.25, g: 0.8, b: 1, a: 0.4}
   m_CompletedColor: {r: 0.3, g: 1, b: 0.45, a: 0.55}
   m_WrongColor: {r: 1, g: 0.72, b: 0.25, a: 0.5}
@@ -143602,6 +143629,7 @@ MonoBehaviour:
   m_Ring: {fileID: 261879405}
   m_CelebrationVfx: {fileID: 1153918747}
   m_AudioSource: {fileID: 1599391094}
+  m_Reaction: {fileID: 0}
   m_IdleColor: {r: 0.25, g: 0.8, b: 1, a: 0.4}
   m_CompletedColor: {r: 0.3, g: 1, b: 0.45, a: 0.55}
   m_WrongColor: {r: 1, g: 0.72, b: 0.25, a: 0.5}
@@ -169724,7 +169752,10 @@ MonoBehaviour:
   - {fileID: 2029940454}
   - {fileID: 1599391093}
   - {fileID: 1363877243}
-  m_VinePrefab: {fileID: 7442199992109450175, guid: 7976f52dbce9fa241b5e8919ee51d531, type: 3}
+  m_DecoyNodes: []
+  m_Roads: {fileID: 0}
+  m_ConnectionPrefab: {fileID: 0}
+  m_ConnectionMaterial: {fileID: 0}
   m_BannerRoot: {fileID: 848332516}
   m_BannerText: {fileID: 190665998}
   m_BannerDuration: 4
@@ -170799,6 +170830,7 @@ MonoBehaviour:
   m_Ring: {fileID: 1866741731}
   m_CelebrationVfx: {fileID: 308368962}
   m_AudioSource: {fileID: 1889767288}
+  m_Reaction: {fileID: 0}
   m_IdleColor: {r: 0.25, g: 0.8, b: 1, a: 0.4}
   m_CompletedColor: {r: 0.3, g: 1, b: 0.45, a: 0.55}
   m_WrongColor: {r: 1, g: 0.72, b: 0.25, a: 0.5}
@@ -171077,6 +171109,14 @@ MonoBehaviour:
   m_TurnSpeed: 4
   m_RestSeconds: {x: 2, y: 6}
   m_YawOffset: 0
+  m_AvoidObstacles: 0
+  m_BodyRadius: 0.6
+  m_LookAhead: 2.5
+  m_AvoidStrength: 2.5
+  m_ObstacleMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_PlayerClearance: 1.1
 --- !u!1001 &1894706341
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -178298,6 +178338,7 @@ MonoBehaviour:
   m_Ring: {fileID: 1420449844}
   m_CelebrationVfx: {fileID: 1076202831}
   m_AudioSource: {fileID: 2021179217}
+  m_Reaction: {fileID: 0}
   m_IdleColor: {r: 0.25, g: 0.8, b: 1, a: 0.4}
   m_CompletedColor: {r: 0.3, g: 1, b: 0.45, a: 0.55}
   m_WrongColor: {r: 1, g: 0.72, b: 0.25, a: 0.5}
@@ -179375,6 +179416,7 @@ MonoBehaviour:
   m_Ring: {fileID: 461251796}
   m_CelebrationVfx: {fileID: 106085789}
   m_AudioSource: {fileID: 2029940455}
+  m_Reaction: {fileID: 0}
   m_IdleColor: {r: 0.25, g: 0.8, b: 1, a: 0.4}
   m_CompletedColor: {r: 0.3, g: 1, b: 0.45, a: 0.55}
   m_WrongColor: {r: 1, g: 0.72, b: 0.25, a: 0.5}

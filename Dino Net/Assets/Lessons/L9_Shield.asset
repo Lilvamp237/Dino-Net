@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c647cb138b6de8c4fa36957992eb6dc8, type: 3}
+  m_Name: L9_Shield
+  m_EditorClassIdentifier: 
+  concept: 0
+  conceptTerm: Firewall
+  triggerAfterNodes: 2
+  speaker: 'Bouncer: "Halt! Show me your shield!"'
+  prompt: What do we show?
+  correctFeedback: 'The bouncer nods: come on in!'
+  packetLabel: SHIELD
+  packetTint: {r: 0.35, g: 1, b: 0.55, a: 1}
+  conceptResult: Firewall lets safe packets in
+  options:
+  - label: Nothing
+    sublabel: Let's just walk in.
+    icon: {fileID: 21300000, guid: 9dba6f2976bd6504d8d395242fa8edbd, type: 3}
+    tint: {r: 1, g: 0.72, b: 0.25, a: 1}
+    correct: 0
+    wrongFeedback: The bouncer will not let an unshielded packet in. Show the HTTPS
+      shield!
+  - label: The HTTPS shield
+    sublabel: It shows we are safe.
+    icon: {fileID: 21300000, guid: 57e72022b8e57e8479edde0f9b529e19, type: 3}
+    tint: {r: 0.35, g: 1, b: 0.55, a: 1}
+    correct: 1
+    wrongFeedback: 

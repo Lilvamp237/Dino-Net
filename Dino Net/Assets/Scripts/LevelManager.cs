@@ -55,6 +55,16 @@ namespace DinoNet
 
         public void SetPaused(bool paused) => IsPaused = paused;
 
+        /// <summary>The level's starting countdown in seconds (before any adaptive bonus).</summary>
+        public float TimeLimit => m_TimeLimit;
+
+        /// <summary>Gives the child extra time - used by the adaptive coach when a level has been tough.</summary>
+        public void AddTime(float seconds)
+        {
+            TimeRemaining += seconds;
+            m_TimeLimit += seconds;
+        }
+
         public event Action LevelCompleted;
         public event Action LevelFailed;
 

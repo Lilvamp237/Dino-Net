@@ -39,7 +39,10 @@ namespace DinoNet
             m_Panel.rotation = Quaternion.LookRotation(forward, Vector3.up);
         }
 
-        public void PlayGame() => GameFlow.LoadLevel(1);
+        /// <summary>Starts the level the adaptive system suggests (Level 1 for a new player).</summary>
+        public void PlayGame() => GameFlow.LoadLevel(ProgressStore.RecommendedLevel());
+
+        public void PlaySandbox() => GameFlow.LoadSandbox();
 
         public void PlayTutorial() => GameFlow.LoadTutorial();
 

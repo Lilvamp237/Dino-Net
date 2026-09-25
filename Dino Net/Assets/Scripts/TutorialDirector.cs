@@ -197,6 +197,8 @@ namespace DinoNet
             if (m_PanelText != null)
                 m_PanelText.text = line;
 
+            VoiceOver.Speak(line);
+
             if (m_AudioSource != null && m_StepClip != null)
                 m_AudioSource.PlayOneShot(m_StepClip);
 

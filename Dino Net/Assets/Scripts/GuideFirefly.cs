@@ -126,6 +126,15 @@ namespace DinoNet
         /// <summary>Raised whenever the firefly works out a fresh route to the next node.</summary>
         public event Action<QuestNode> RouteHintStarted;
 
+        /// <summary>Forces a fresh route search, e.g. after a road is blocked.</summary>
+        public void RebuildPath()
+        {
+            m_PathTarget = null;
+        }
+
+        /// <summary>The route the firefly is currently following (road centre-line).</summary>
+        public IReadOnlyList<Vector3> CurrentPath => m_Path;
+
         /// <summary>True once the firefly has actually set off along a route.</summary>
         public bool HasGuided { get; private set; }
 

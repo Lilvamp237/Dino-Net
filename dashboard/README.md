@@ -19,7 +19,7 @@ npm test             # end-to-end smoke test (starts its own temp server)
 Set real values before showing anyone: `DASH_TEACHER_PASSWORD`, `DINONET_API_KEY`.
 
 ## Connecting the game
-The game reads `Assets/StreamingAssets/telemetry.json`:
+The game reads `Assets/Resources/telemetry.json`:
 ```json
 { "url": "http://localhost:3000", "apiKey": "dino-demo-key", "enabled": true }
 ```

@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c647cb138b6de8c4fa36957992eb6dc8, type: 3}
+  m_Name: L5_Signal
+  m_EditorClassIdentifier: 
+  concept: 0
+  conceptTerm: Signal strength
+  triggerAfterNodes: 1
+  speaker: 'The signal fades on long roads:'
+  prompt: How do we make it strong again?
+  correctFeedback: Great! Boosters pass the signal on strongly.
+  packetLabel: STRONG
+  packetTint: {r: 0.35, g: 1, b: 0.55, a: 1}
+  conceptResult: Boosters keep the signal strong
+  options:
+  - label: Use a booster
+    sublabel: Boosters strengthen the signal.
+    icon: {fileID: 21300000, guid: 46a0bfe1099822841868a0c7acfe6742, type: 3}
+    tint: {r: 0.35, g: 1, b: 0.55, a: 1}
+    correct: 1
+    wrongFeedback: 
+  - label: Walk faster
+    sublabel: Speed does not fix distance.
+    icon: {fileID: 21300000, guid: 05b137971e8abb844b9d04940874cef4, type: 3}
+    tint: {r: 1, g: 0.72, b: 0.25, a: 1}
+    correct: 0
+    wrongFeedback: Not quite! Boosters give the signal a fresh push.

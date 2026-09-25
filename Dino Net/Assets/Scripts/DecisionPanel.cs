@@ -83,6 +83,12 @@ namespace DinoNet
 
         public bool IsOpen => m_Body != null && m_Body.activeSelf;
 
+        /// <summary>The question currently on screen, or null.</summary>
+        public NetworkLesson CurrentLesson => IsOpen ? m_Lesson : null;
+
+        /// <summary>How many wrong picks before the safe choice starts glowing. Lower = more help.</summary>
+        public void SetNudgeThreshold(int mistakes) => m_NudgeAfterMistakes = Mathf.Max(1, mistakes);
+
         void Awake()
         {
             if (m_Body != null)
@@ -189,6 +195,7 @@ namespace DinoNet
                 m_HudRoot.SetActive(false);
 
             PanelAnchor.PlaceInFront(gameObject);
+            VoiceOver.Speak(lesson.speaker + " " + lesson.prompt);
         }
 
         public void Hide()
@@ -234,6 +241,7 @@ namespace DinoNet
                 }
 
                 Play(m_CorrectClip);
+                VoiceOver.Speak(m_Lesson.correctFeedback);
                 Restart(FinishRoutine());
                 return;
             }
@@ -248,6 +256,7 @@ namespace DinoNet
             }
 
             Play(m_WrongClip);
+            VoiceOver.Speak(option.wrongFeedback);
             Mistaken?.Invoke(m_Lesson, option);
             Restart(RetryRoutine());
         }

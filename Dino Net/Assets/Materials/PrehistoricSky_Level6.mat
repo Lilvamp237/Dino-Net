@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: PrehistoricSky_Level6
+  m_Shader: {fileID: 4800000, guid: f44ec7789a47c51408c1383d173e1968, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _BirdAmount: 0.9
+    - _CloudCover: 0.7
+    - _CloudSpeed: 0.012
+    - _SmokeAmount: 0.5
+    - _SmokeAzimuth: 1.4337301
+    - _StarStrength: 0
+    - _SunSize: 0.02
+    m_Colors:
+    - _CloudColor: {r: 1, g: 0.94, b: 0.96, a: 1}
+    - _CloudShade: {r: 0.78, g: 0.74, b: 0.86, a: 1}
+    - _Ground: {r: 0.42, g: 0.42, b: 0.4, a: 1}
+    - _Haze: {r: 0.85, g: 0.82, b: 0.9, a: 1}
+    - _Horizon: {r: 1, g: 0.8, b: 0.8, a: 1}
+    - _Mid: {r: 0.8, g: 0.75, b: 0.85, a: 1}
+    - _MoonDir: {r: -0.4, g: 0.55, b: -0.6, a: 0}
+    - _SmokeColor: {r: 0.35, g: 0.3, b: 0.32, a: 1}
+    - _SunColor: {r: 1, g: 0.85, b: 0.85, a: 1}
+    - _SunDir: {r: -0.40561607, g: 0.30421206, b: 0.8619342, a: 0}
+    - _Zenith: {r: 0.45, g: 0.55, b: 0.8, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

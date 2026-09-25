@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c647cb138b6de8c4fa36957992eb6dc8, type: 3}
+  m_Name: L7_Dns
+  m_EditorClassIdentifier: 
+  concept: 1
+  conceptTerm: Phone book (DNS)
+  triggerAfterNodes: 1
+  speaker: 'Ask the Wise Old Dino, the phone book of the jungle:'
+  prompt: Where does Crest Head live?
+  correctFeedback: Yes! A phone book (DNS) turns a name into a home number.
+  packetLabel: HOME 2
+  packetTint: {r: 0.45, g: 0.82, b: 1, a: 1}
+  conceptResult: 'DNS: names to addresses'
+  options:
+  - label: Home 4
+    sublabel: That is Three Horns.
+    icon: {fileID: 21300000, guid: c9ebc3bf886fb1648983a6bace9344eb, type: 3}
+    tint: {r: 1, g: 0.72, b: 0.25, a: 1}
+    correct: 0
+    wrongFeedback: That is Three Horns' home. The phone book says Crest Head lives
+      at Home 2.
+  - label: Home 2
+    sublabel: The phone book says so.
+    icon: {fileID: 21300000, guid: dbbb31fdf79ec754da9374ec43a8947f, type: 3}
+    tint: {r: 0.35, g: 1, b: 0.55, a: 1}
+    correct: 1
+    wrongFeedback: 

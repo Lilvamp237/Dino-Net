@@ -11,9 +11,10 @@ namespace DinoNet
     {
         public const string MainMenuScene = "MainMenu";
         public const string TutorialScene = "Tutorial";
+        public const string SandboxScene = "Sandbox";
 
         /// <summary>Highest level that exists. Level N lives in the scene "LevelN".</summary>
-        public const int LastLevel = 4;
+        public const int LastLevel = 10;
 
         public static string LevelScene(int levelNumber) => "Level" + levelNumber;
 
@@ -22,6 +23,8 @@ namespace DinoNet
         public static void LoadMainMenu() => Load(MainMenuScene);
 
         public static void LoadTutorial() => Load(TutorialScene);
+
+        public static void LoadSandbox() => Load(SandboxScene);
 
         public static void LoadLevel(int levelNumber)
         {

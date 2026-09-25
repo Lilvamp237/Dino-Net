@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c647cb138b6de8c4fa36957992eb6dc8, type: 3}
+  m_Name: L8_Link
+  m_EditorClassIdentifier: 
+  concept: 2
+  conceptTerm: Fake friends
+  triggerAfterNodes: 0
+  speaker: 'A dino you have never met says:'
+  prompt: '"Click my shiny link to win a prize!"'
+  correctFeedback: Smart! Ignore strange links and tell a grown-up.
+  packetLabel: SAFE
+  packetTint: {r: 0.35, g: 1, b: 0.55, a: 1}
+  conceptResult: Strange links? Tell a grown-up
+  options:
+  - label: Ignore it, tell a grown-up
+    sublabel: Unknown links can be tricks.
+    icon: {fileID: 21300000, guid: 95f1e97c77db5824c8e46d44cfb54d36, type: 3}
+    tint: {r: 0.35, g: 1, b: 0.55, a: 1}
+    correct: 1
+    wrongFeedback: 
+  - label: Click the link
+    sublabel: A free prize? Sounds nice...
+    icon: {fileID: 21300000, guid: 9dba6f2976bd6504d8d395242fa8edbd, type: 3}
+    tint: {r: 1, g: 0.72, b: 0.25, a: 1}
+    correct: 0
+    wrongFeedback: Careful! Prizes from strangers are often tricks. Never click -
+      tell a grown-up.

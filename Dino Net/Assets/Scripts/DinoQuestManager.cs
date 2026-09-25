@@ -331,6 +331,7 @@ namespace DinoNet
 
             m_BannerText.text = message;
             m_BannerRoot.SetActive(true);
+            VoiceOver.Speak(message);
 
             if (!permanent)
                 m_BannerRoutine = StartCoroutine(HideBannerAfterDelay());

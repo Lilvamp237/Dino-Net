@@ -83,10 +83,65 @@ namespace DinoNet
             return candidates.Count == 0 ? -1 : candidates[UnityEngine.Random.Range(0, candidates.Count)];
         }
 
+        [NonSerialized]
+        readonly HashSet<int> m_Blocked = new HashSet<int>();
+
+        /// <summary>Closes or reopens a road. Closed roads are ignored by every path search.</summary>
+        public void SetBlocked(int roadIndex, bool blocked)
+        {
+            if (roadIndex < 0 || roadIndex >= m_Roads.Count)
+                return;
+
+            if (blocked)
+                m_Blocked.Add(roadIndex);
+            else
+                m_Blocked.Remove(roadIndex);
+        }
+
+        public bool IsBlocked(int roadIndex) => m_Blocked.Contains(roadIndex);
+
+        /// <summary>Index of the road joining two junctions, or -1.</summary>
+        public int FindRoad(int junctionA, int junctionB)
+        {
+            for (var r = 0; r < m_Roads.Count; r++)
+            {
+                var a = IndexOf(m_Roads[r].from);
+                var b = IndexOf(m_Roads[r].to);
+                if ((a == junctionA && b == junctionB) || (a == junctionB && b == junctionA))
+                    return r;
+            }
+
+            return -1;
+        }
+
+        /// <summary>Total length of a polyline, ignoring height.</summary>
+        public static float PathLength(IReadOnlyList<Vector3> points)
+        {
+            var total = 0f;
+            for (var i = 1; i < points.Count; i++)
+            {
+                var d = points[i] - points[i - 1];
+                d.y = 0f;
+                total += d.magnitude;
+            }
+
+            return total;
+        }
+
         /// <summary>Fills <paramref name="result"/> with the shortest road centre-line from one junction to another.</summary>
         public bool TryGetPath(int from, int to, List<Vector3> result)
         {
+            return TryGetPath(from, to, result, null, null);
+        }
+
+        /// <summary>
+        /// Shortest path that also skips <paramref name="avoidRoads"/> (used to find alternative
+        /// routes). <paramref name="roadsUsed"/> receives the road indices along the way.
+        /// </summary>
+        public bool TryGetPath(int from, int to, List<Vector3> result, ICollection<int> avoidRoads, List<int> roadsUsed)
+        {
             result.Clear();
+            roadsUsed?.Clear();
             if (from < 0 || to < 0 || from >= m_Junctions.Count || to >= m_Junctions.Count)
                 return false;
 
@@ -127,6 +182,9 @@ namespace DinoNet
 
                 for (var r = 0; r < m_Roads.Count; r++)
                 {
+                    if (m_Blocked.Contains(r) || (avoidRoads != null && avoidRoads.Contains(r)))
+                        continue;
+
                     var road = m_Roads[r];
                     var a = IndexOf(road.from);
                     var b = IndexOf(road.to);
@@ -158,6 +216,7 @@ namespace DinoNet
 
             for (var i = 0; i < chain.Count - 1; i++)
             {
+                roadsUsed?.Add(prevRoad[chain[i + 1]]);
                 var road = m_Roads[prevRoad[chain[i + 1]]];
                 var forward = IndexOf(road.from) == chain[i];
                 var start = result.Count == 0 ? 0 : 1;
