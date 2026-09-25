@@ -1,0 +1,13 @@
+{
+  "name": "dino-net-dashboard",
+  "version": "1.0.0",
+  "description": "Teacher and parent dashboard for the Dino Net VR game. No dependencies.",
+  "private": true,
+  "main": "server.js",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/smoke.js"
+  },
+  "license": "UNLICENSED"
+}
