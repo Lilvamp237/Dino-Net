@@ -30,6 +30,9 @@ namespace DinoNet
         [SerializeField]
         AudioSource m_AudioSource;
 
+        [SerializeField, Tooltip("Optional. Plays a happy hop when the message arrives.")]
+        NodeArrivalReaction m_Reaction;
+
         [SerializeField]
         Color m_IdleColor = new Color(0.25f, 0.8f, 1f);
 
@@ -89,6 +92,9 @@ namespace DinoNet
 
             if (m_AudioSource != null && clip != null)
                 m_AudioSource.PlayOneShot(clip);
+
+            if (m_Reaction != null)
+                m_Reaction.Play();
         }
 
         public void PlayWrongNode(AudioClip clip)

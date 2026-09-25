@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -50,7 +51,7 @@ namespace DinoNet
 
         void Awake()
         {
-            m_Seed = Random.value * 100f;
+            m_Seed = UnityEngine.Random.value * 100f;
             if (m_IdleAnchor != null)
                 transform.position = m_IdleAnchor.position + Vector3.up * 1.2f;
         }
@@ -122,6 +123,12 @@ namespace DinoNet
             return transform.position;
         }
 
+        /// <summary>Raised whenever the firefly works out a fresh route to the next node.</summary>
+        public event Action<QuestNode> RouteHintStarted;
+
+        /// <summary>True once the firefly has actually set off along a route.</summary>
+        public bool HasGuided { get; private set; }
+
         void BuildPath(QuestNode target)
         {
             m_PathTarget = target;
@@ -132,6 +139,12 @@ namespace DinoNet
             var to = m_Network.NearestJunction(target.DeliveryAnchor.position);
             if (!m_Network.TryGetPath(from, to, m_Path))
                 m_Path.Clear();
+
+            if (m_Path.Count > 0)
+            {
+                HasGuided = true;
+                RouteHintStarted?.Invoke(target);
+            }
         }
 
         float HeadDistance()

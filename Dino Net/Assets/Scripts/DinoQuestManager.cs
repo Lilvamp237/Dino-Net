@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -32,8 +33,18 @@ namespace DinoNet
         [SerializeField, Tooltip("Dino nodes in the order the child must visit them.")]
         List<QuestNode> m_Route = new List<QuestNode>();
 
-        [SerializeField, Tooltip("Prefab with a LineRenderer + EnergyVineVisual, grown between nodes as the route is completed.")]
-        EnergyVineVisual m_VinePrefab;
+        [SerializeField, Tooltip("Dinosaurs that look like nodes but aren't on the route. Used to teach that not every dino is the right one.")]
+        List<QuestNode> m_DecoyNodes = new List<QuestNode>();
+
+        [Header("Network connections")]
+        [SerializeField, Tooltip("Road graph used to lay each established connection along the real roads.")]
+        RoadNetwork m_Roads;
+
+        [SerializeField, Tooltip("Prefab with a LineRenderer + NetworkConnection, laid on the floor once a node is reached.")]
+        NetworkConnection m_ConnectionPrefab;
+
+        [SerializeField, Tooltip("The glowing road material from the original scene.")]
+        Material m_ConnectionMaterial;
 
         [Header("Banner")]
         [SerializeField]
@@ -77,6 +88,63 @@ namespace DinoNet
         float m_SearchTimer;
         QuestNode m_WrongNodeLatch;
         Coroutine m_BannerRoutine;
+        bool m_Halted;
+
+        /// <summary>Raised when the child starts the run and the packet appears.</summary>
+        public event Action QuestStarted;
+
+        /// <summary>Raised each time the packet is delivered to the correct next node.</summary>
+        public event Action<QuestNode> NodeConnected;
+
+        /// <summary>Raised when the packet reaches the final destination node.</summary>
+        public event Action QuestCompleted;
+
+        /// <summary>Raised when the packet is taken to a dinosaur that isn't the current target.</summary>
+        public event Action<QuestNode> WrongNodeVisited;
+
+        /// <summary>Total nodes on this level's route.</summary>
+        public int RouteCount => m_Route.Count;
+
+        /// <summary>How many route nodes the packet has reached so far.</summary>
+        public int ConnectedCount => m_CurrentIndex;
+
+        /// <summary>The node the packet must reach next, or null once the route is finished.</summary>
+        public QuestNode CurrentTarget => m_State == QuestState.Carrying && m_CurrentIndex < m_Route.Count ? m_Route[m_CurrentIndex] : null;
+
+        public IReadOnlyList<QuestNode> Route => m_Route;
+
+        public bool IsRunning => m_State == QuestState.Carrying && !m_Halted;
+
+        public CarryableOrb Orb => m_Orb;
+
+        /// <summary>
+        /// While true the packet cannot be delivered, so a networking question can be answered
+        /// before the route continues. The child keeps hold of the packet throughout.
+        /// </summary>
+        public bool DeliveryPaused { get; set; }
+
+        /// <summary>Puts a line on the quest banner. Used by the lesson director.</summary>
+        public void Announce(string message) => ShowBanner(message, false);
+
+        /// <summary>Starts the run without needing the podium button (used by the tutorial and level intro).</summary>
+        public void StartQuest() => BeginQuest();
+
+        /// <summary>
+        /// Freezes progression so a level that has already failed cannot still be completed.
+        /// </summary>
+        public void Halt()
+        {
+            m_Halted = true;
+
+            if (m_BannerRoutine != null)
+            {
+                StopCoroutine(m_BannerRoutine);
+                m_BannerRoutine = null;
+            }
+
+            if (m_BannerRoot != null)
+                m_BannerRoot.SetActive(false);
+        }
 
         void Start()
         {
@@ -102,7 +170,7 @@ namespace DinoNet
 
         void Update()
         {
-            if (m_State != QuestState.Carrying || m_Orb == null)
+            if (m_Halted || DeliveryPaused || m_State != QuestState.Carrying || m_Orb == null)
                 return;
 
             var target = m_Route[m_CurrentIndex];
@@ -120,7 +188,7 @@ namespace DinoNet
 
         void BeginQuest()
         {
-            if (m_State != QuestState.WaitingForStart || m_Route.Count == 0)
+            if (m_Halted || m_State != QuestState.WaitingForStart || m_Route.Count == 0)
                 return;
 
             m_State = QuestState.Carrying;
@@ -134,6 +202,7 @@ namespace DinoNet
             }
 
             ShowBanner(m_StartMessage, false);
+            QuestStarted?.Invoke();
         }
 
         void DeliverTo(QuestNode node)
@@ -148,11 +217,13 @@ namespace DinoNet
             m_CurrentIndex++;
             m_SearchTimer = 0f;
             m_WrongNodeLatch = null;
+            NodeConnected?.Invoke(node);
 
             if (isFinal)
             {
                 m_State = QuestState.Complete;
                 ShowBanner(m_CompleteMessage, true);
+                QuestCompleted?.Invoke();
                 return;
             }
 
@@ -160,18 +231,42 @@ namespace DinoNet
             ShowBanner(isLastHop ? m_AlmostMessage : m_ProgressMessage, false);
         }
 
-        /// <summary>Connects the previous stop to <paramref name="node"/> with a permanent energy vine.</summary>
+        /// <summary>
+        /// Lays a permanent glowing strand along the road from the previous stop to
+        /// <paramref name="node"/>. Built only on arrival, so it reads as a connection that has
+        /// just been established rather than a route handed to the child in advance.
+        /// </summary>
         void GrowVineTo(QuestNode node)
         {
-            if (m_VinePrefab == null)
+            if (m_ConnectionPrefab == null)
                 return;
 
-            var from = m_CurrentIndex == 0 ? m_StartAnchor : m_Route[m_CurrentIndex - 1].VineAnchor;
+            var from = m_CurrentIndex == 0 ? m_StartAnchor : m_Route[m_CurrentIndex - 1].DeliveryAnchor;
             if (from == null)
                 return;
 
-            var vine = Instantiate(m_VinePrefab, transform);
-            vine.Initialize(from, node.VineAnchor);
+            var path = BuildConnectionPath(from.position, node.DeliveryAnchor.position);
+            var link = Instantiate(m_ConnectionPrefab, transform);
+            link.Build(path, m_ConnectionMaterial);
+        }
+
+        /// <summary>Follows the dirt roads where possible, falling back to a straight hop.</summary>
+        List<Vector3> BuildConnectionPath(Vector3 from, Vector3 to)
+        {
+            if (m_Roads != null)
+            {
+                var points = new List<Vector3>();
+                var a = m_Roads.NearestJunction(from);
+                var b = m_Roads.NearestJunction(to);
+                if (m_Roads.TryGetPath(a, b, points) && points.Count > 1)
+                {
+                    points.Insert(0, from);
+                    points.Add(to);
+                    return points;
+                }
+            }
+
+            return new List<Vector3> { from, to };
         }
 
         /// <summary>
@@ -193,11 +288,28 @@ namespace DinoNet
                 }
             }
 
+            // Decoys are dinosaurs that look like nodes but are not on the route at all.
+            if (touching == null)
+            {
+                foreach (var decoy in m_DecoyNodes)
+                {
+                    if (decoy != null && decoy.IsOrbInRange(orbPosition))
+                    {
+                        touching = decoy;
+                        break;
+                    }
+                }
+            }
+
             if (touching == m_WrongNodeLatch)
                 return;
 
             m_WrongNodeLatch = touching;
-            touching?.PlayWrongNode(m_WrongNodeClip);
+            if (touching == null)
+                return;
+
+            touching.PlayWrongNode(m_WrongNodeClip);
+            WrongNodeVisited?.Invoke(touching);
         }
 
         void UpdateHint(QuestNode target)
