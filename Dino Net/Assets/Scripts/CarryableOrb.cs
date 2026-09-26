@@ -40,6 +40,9 @@ namespace DinoNet
         [SerializeField, Tooltip("What counts as ground when working out where the packet lands.")]
         LayerMask m_GroundMask = ~0;
 
+        [SerializeField, Tooltip("Clearance the resting spot needs. If the packet would land inside a rock or a tree it is stepped back toward the child until it is in the open.")]
+        float m_ClearRadius = 0.22f;
+
         [SerializeField, Tooltip("Below this height the packet has fallen out of the world and is brought back to the child's feet.")]
         float m_RescueBelowY = -3f;
 
@@ -61,7 +64,8 @@ namespace DinoNet
         /// <summary>Raised when the packet comes to rest on the ground after being let go.</summary>
         public event Action Dropped;
 
-        static readonly RaycastHit[] s_GroundHits = new RaycastHit[8];
+        static readonly RaycastHit[] s_GroundHits = new RaycastHit[16];
+        static readonly Collider[] s_Overlap = new Collider[8];
 
         XRGrabInteractable m_Interactable;
         Rigidbody m_Rigidbody;
@@ -173,26 +177,75 @@ namespace DinoNet
         /// </summary>
         public void RestNearPlayer()
         {
-            var point = transform.position;
             var head = Head();
+            var point = transform.position;
 
-            if (head != null)
+            if (head == null)
             {
-                var away = point - head.position;
-                away.y = 0f;
-
-                // Too far, or fallen through the floor: bring it back in front of the child.
-                if (away.magnitude > m_MaxDropDistance || point.y < m_RescueBelowY)
-                {
-                    var direction = away.sqrMagnitude > 0.0001f ? away.normalized : Flat(head.forward);
-                    point = head.position + direction * m_MaxDropDistance;
-                }
-
-                point.y = head.position.y;
+                m_RestPoint = new Vector3(point.x, GroundHeight(point) + m_RestHeight, point.z);
+                Settle();
+                return;
             }
 
-            m_RestPoint = new Vector3(point.x, GroundHeight(point) + m_RestHeight, point.z);
+            var away = point - head.position;
+            away.y = 0f;
+            var direction = away.sqrMagnitude > 0.0001f ? away.normalized : Flat(head.forward);
 
+            // Too far, or fallen through the floor: bring it back in front of the child.
+            var distance = away.magnitude > m_MaxDropDistance || point.y < m_RescueBelowY
+                ? m_MaxDropDistance
+                : away.magnitude;
+
+            // Step in toward the child until the packet has somewhere clear to sit. Dropping it
+            // against a tree or a rock used to leave it inside the scenery, which reads as the
+            // packet simply vanishing.
+            m_RestPoint = RestingSpot(head, direction, distance);
+            Settle();
+        }
+
+        /// <summary>
+        /// The nearest clear spot on the floor, starting at <paramref name="distance"/> out from
+        /// the child along <paramref name="direction"/> and walking back in if it is blocked.
+        /// </summary>
+        Vector3 RestingSpot(Transform head, Vector3 direction, float distance)
+        {
+            var fallback = Vector3.zero;
+
+            for (var step = distance; step >= 0.35f; step -= 0.3f)
+            {
+                var flat = head.position + direction * step;
+                var candidate = new Vector3(flat.x, GroundHeight(flat, head) + m_RestHeight, flat.z);
+
+                if (fallback == Vector3.zero)
+                    fallback = candidate;
+
+                if (IsClear(candidate))
+                    return candidate;
+            }
+
+            // Everything around them is blocked - put it right in front of their feet, which is
+            // always somewhere they can see and reach.
+            var last = head.position + Flat(head.forward) * 0.6f;
+            var floor = new Vector3(last.x, GroundHeight(last, head) + m_RestHeight, last.z);
+            return IsClear(floor) || fallback == Vector3.zero ? floor : fallback;
+        }
+
+        /// <summary>True when nothing solid is already occupying this spot.</summary>
+        bool IsClear(Vector3 point)
+        {
+            var count = Physics.OverlapSphereNonAlloc(point, m_ClearRadius, s_Overlap, m_GroundMask, QueryTriggerInteraction.Ignore);
+            for (var i = 0; i < count; i++)
+            {
+                if (s_Overlap[i] != null && !s_Overlap[i].transform.IsChildOf(transform))
+                    return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>Freezes the packet at the spot that was chosen for it and leaves it hovering.</summary>
+        void Settle()
+        {
             if (!m_Rigidbody.isKinematic)
             {
                 m_Rigidbody.linearVelocity = Vector3.zero;
@@ -209,11 +262,20 @@ namespace DinoNet
             Dropped?.Invoke();
         }
 
-        /// <summary>Finds the floor under a point, ignoring the packet's own colliders.</summary>
-        float GroundHeight(Vector3 point)
+        /// <summary>
+        /// The floor under a point, ignoring the packet's own colliders. Only surfaces at or below
+        /// the child's own feet count: searching from high up and taking the topmost hit would
+        /// perch the packet on a tree canopy, well out of sight.
+        /// </summary>
+        float GroundHeight(Vector3 point, Transform head = null)
         {
-            var origin = new Vector3(point.x, point.y + 3f, point.z);
-            var count = Physics.RaycastNonAlloc(origin, Vector3.down, s_GroundHits, 20f, m_GroundMask, QueryTriggerInteraction.Ignore);
+            if (head == null)
+                head = Head();
+
+            var feet = head != null ? head.position.y - 1.5f : point.y;
+            var ceiling = feet + 0.6f;
+            var origin = new Vector3(point.x, ceiling, point.z);
+            var count = Physics.RaycastNonAlloc(origin, Vector3.down, s_GroundHits, 8f, m_GroundMask, QueryTriggerInteraction.Ignore);
 
             var best = float.NegativeInfinity;
             for (var i = 0; i < count; i++)
@@ -221,7 +283,8 @@ namespace DinoNet
                 if (s_GroundHits[i].collider.transform.IsChildOf(transform))
                     continue;
 
-                if (s_GroundHits[i].point.y > best)
+                // Highest surface that is still underfoot.
+                if (s_GroundHits[i].point.y > best && s_GroundHits[i].point.y <= ceiling)
                     best = s_GroundHits[i].point.y;
             }
 
@@ -229,7 +292,6 @@ namespace DinoNet
                 return best;
 
             // No floor found - sit it at the child's feet rather than leaving it in mid-air.
-            var head = Head();
             return head != null ? head.position.y - 1.4f : 0f;
         }
 

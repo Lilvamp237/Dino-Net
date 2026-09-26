@@ -24,8 +24,8 @@ namespace DinoNet
         GameObject m_HudRoot;
 
         [Header("Placement")]
-        [SerializeField, Tooltip("Right, up and forward from the head. Negative Y keeps it down near the floor, out of the way of the game.")]
-        Vector3 m_Offset = new Vector3(0.52f, -0.78f, 1.0f);
+        [SerializeField, Tooltip("Right, up and forward from the head. Low enough to stay out of the way of the game, but high enough to be properly in view rather than at the edge of vision.")]
+        Vector3 m_Offset = new Vector3(0.46f, -0.42f, 1.0f);
 
         [SerializeField, Tooltip("Puts the button in the left corner instead of the right.")]
         bool m_LeftHanded;

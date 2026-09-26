@@ -83,6 +83,11 @@ namespace DinoNetEditor
                         Write("OK sandbox built");
                         break;
 
+                    case "voice":
+                        DinoNet.VoiceOver.Enabled = argument == "on";
+                        Write("OK voice-over " + (DinoNet.VoiceOver.Enabled ? "on" : "off"));
+                        break;
+
                     case "level":
                         LevelSceneBuilder.BuildLevel(int.Parse(argument));
                         Write("OK level " + argument + " built");

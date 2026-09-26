@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion.Movement;
 using UnityEngine.XR.Interaction.Toolkit.UI;
 using DinoNet;
 
@@ -1164,17 +1165,34 @@ namespace DinoNetEditor
         /// The rig ships with a 0.1m capsule, which is thin enough to slip between a dinosaur's
         /// legs. Widens it so the player bumps into things, without being so fat they snag.
         /// </summary>
+        /// <summary>
+        /// Comfortable smooth locomotion for a child. The rig ships at 3.5 m/s, which is a jog and
+        /// a reliable way to give a five-year-old motion sickness.
+        /// </summary>
+        const float k_WalkSpeed = 1.6f;
+
         static void FixPlayerCollider()
         {
             var xr = GameObject.Find("Complete XR Origin Set Up Variant");
             var controller = xr != null ? xr.GetComponent<CharacterController>() : null;
-            if (controller == null)
-                return;
+            if (controller != null)
+            {
+                controller.radius = 0.28f;
+                controller.skinWidth = 0.03f;
+                controller.stepOffset = 0.4f;
+                controller.detectCollisions = true;
+            }
 
-            controller.radius = 0.28f;
-            controller.skinWidth = 0.03f;
-            controller.stepOffset = 0.4f;
-            controller.detectCollisions = true;
+            foreach (var mover in Object.FindObjectsByType<ContinuousMoveProvider>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                // Through SerializedObject, because the rig is a prefab instance: assigning the
+                // property directly leaves the recorded override untouched and the old speed is
+                // written straight back out on save.
+                var mso = new SerializedObject(mover);
+                mso.FindProperty("m_MoveSpeed").floatValue = k_WalkSpeed;
+                mso.ApplyModifiedPropertiesWithoutUndo();
+                Debug.Log("[DinoNet] Walking speed on " + mover.gameObject.name + " set to " + k_WalkSpeed + " m/s.");
+            }
         }
 
         /// <summary>Stands the source dinosaur beside the podium so the packet visibly comes from it.</summary>

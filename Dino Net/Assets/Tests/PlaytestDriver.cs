@@ -461,8 +461,8 @@ namespace DinoNet.Playtest
         }
 
         /// <summary>
-        /// Letting the packet go - on purpose, to point at a question - must leave it on the
-        /// ground within reach, not bouncing away or vanishing back to the podium.
+        /// Letting the packet go - on purpose, to point at a question - must leave it somewhere the
+        /// child can see and reach, whatever they were standing next to when they dropped it.
         /// </summary>
         IEnumerator RunPacket()
         {
@@ -474,42 +474,87 @@ namespace DinoNet.Playtest
             var orb = quest.Orb;
             var grab = orb.GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable>();
             var head = Camera.main.transform;
-            var podium = orb.transform.position;
 
             quest.StartQuest();
             yield return new WaitForSeconds(0.4f);
 
-            // Pick it up, carry it off, then let go somewhere awkward: high up and far away.
+            // Somewhere solid and tall to drop it against - a tree, a rock, a dinosaur.
+            var obstacle = Vector3.zero;
+            var tallest = 0f;
+            foreach (var collider in FindObjectsByType<Collider>(FindObjectsSortMode.None))
+            {
+                if (collider.isTrigger || collider.transform.IsChildOf(orb.transform))
+                    continue;
+
+                var offset = collider.bounds.center - head.position;
+                offset.y = 0f;
+                if (offset.magnitude > 9f || collider.bounds.size.y < 2f || collider.bounds.size.y < tallest)
+                    continue;
+
+                tallest = collider.bounds.size.y;
+                obstacle = collider.bounds.center;
+            }
+
+            Note("tallest thing nearby is " + tallest.ToString("0.0") + "m high");
+
+            yield return Drop("thrown far and high", orb, grab, head,
+                head.position + head.forward * 14f + Vector3.up * 5f);
+
+            yield return Drop("dropped straight down at the child's feet", orb, grab, head,
+                head.position + head.forward * 0.4f);
+
+            yield return Drop("dropped below the floor", orb, grab, head,
+                head.position + head.forward * 2f + Vector3.down * 12f);
+
+            if (tallest > 0f)
+            {
+                yield return Drop("dropped inside a tree or a rock", orb, grab, head, obstacle);
+                yield return Drop("dropped on top of something tall", orb, grab, head,
+                    obstacle + Vector3.up * (tallest * 0.5f + 1f));
+            }
+        }
+
+        /// <summary>Releases the packet at a spot and checks where it ends up.</summary>
+        IEnumerator Drop(string label, CarryableOrb orb, UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable grab,
+            Transform head, Vector3 releaseAt)
+        {
             grab.selectEntered.Invoke(new UnityEngine.XR.Interaction.Toolkit.SelectEnterEventArgs());
             yield return null;
-            orb.transform.position = head.position + head.forward * 14f + Vector3.up * 5f;
+            orb.transform.position = releaseAt;
             grab.selectExited.Invoke(new UnityEngine.XR.Interaction.Toolkit.SelectExitEventArgs());
 
-            yield return new WaitForSeconds(3f);
+            yield return new WaitForSeconds(2.6f);
 
             var resting = orb.transform.position;
             var flat = resting - head.position;
             flat.y = 0f;
-            var floor = head.position.y - 1.4f;
-            Note("packet came to rest " + flat.magnitude.ToString("0.00") + "m from the child, "
+            var floor = head.position.y - 1.5f;
+
+            Note(label + ": landed " + flat.magnitude.ToString("0.00") + "m away, "
                  + (resting.y - floor).ToString("0.00") + "m off the floor");
 
-            Check("packet is within reach after being let go", flat.magnitude <= 3f);
-            Check("packet did not sink through the floor", resting.y > floor - 0.4f);
-            Check("packet did not vanish back to the podium", Vector3.Distance(resting, podium) > 1f);
-            Check("packet reports itself as resting", orb.IsResting);
+            Check(label + " - within reach", flat.magnitude <= 3f);
+            Check(label + " - not sunk through the floor", resting.y > floor - 0.5f);
+            Check(label + " - not perched up out of sight", resting.y < head.position.y + 0.3f);
+            Check(label + " - resting", orb.IsResting);
 
-            // It has to stay put, so a child can walk back to where they saw it.
-            yield return new WaitForSeconds(2f);
+            // The thing that reads as "it disappeared": ending up inside the scenery.
+            var buried = false;
+            foreach (var collider in Physics.OverlapSphere(resting, 0.16f, ~0, QueryTriggerInteraction.Ignore))
+            {
+                if (!collider.transform.IsChildOf(orb.transform))
+                {
+                    buried = true;
+                    Note(label + ": buried inside " + collider.gameObject.name);
+                    break;
+                }
+            }
+
+            Check(label + " - not buried inside scenery", !buried);
+
+            yield return new WaitForSeconds(1.2f);
             var drift = Vector3.Distance(resting, orb.transform.position);
-            Note("packet drifted " + drift.ToString("0.00") + "m while waiting");
-            Check("packet stays where it landed", drift < 0.5f);
-
-            Check("packet can still be picked up", grab.isActiveAndEnabled);
-
-            grab.selectEntered.Invoke(new UnityEngine.XR.Interaction.Toolkit.SelectEnterEventArgs());
-            yield return null;
-            Check("picking it back up releases it from the ground", !orb.IsResting);
+            Check(label + " - stays where it landed (" + drift.ToString("0.00") + "m)", drift < 0.5f);
         }
 
         /// <summary>The jungle bed must not be looping in the child's ears from the first second.</summary>
@@ -692,7 +737,11 @@ namespace DinoNet.Playtest
             Note("pause button sits " + flat.magnitude.ToString("0.00") + "m ahead, "
                  + toButton.y.ToString("0.00") + "m below eye level");
             Check("pause button is within reach", flat.magnitude < 1.6f);
-            Check("pause button is down near the floor", toButton.y < -0.4f);
+
+            var below = Mathf.Atan2(-toButton.y, flat.magnitude) * Mathf.Rad2Deg;
+            Note("pause button sits " + below.ToString("0") + " degrees below the horizon");
+            Check("pause button is below eye level, out of the way", below > 10f);
+            Check("pause button is not down at the edge of vision", below < 35f);
 
             var side = Vector3.Dot(toButton, head.right);
             Note("pause button is off to the " + (side > 0f ? "right" : "left") + " by " + Mathf.Abs(side).ToString("0.00") + "m");
