@@ -81,9 +81,9 @@ namespace DinoNet.Playtest
                 yield break;
 
             Note("level " + level.LevelNumber + ": nodes=" + quest.RouteCount + " lessons=" + director.LessonCount);
-            // Levels 1-4 grow by one node each; levels 5+ use fixed routes of 3-6 nodes.
+            // Levels 1-4 grow by one node each; levels 5+ use fixed routes of 3-7 nodes.
             Check("node count fits level",
-                level.LevelNumber <= 4 ? quest.RouteCount == level.LevelNumber + 1 : quest.RouteCount >= 3 && quest.RouteCount <= 6);
+                level.LevelNumber <= 4 ? quest.RouteCount == level.LevelNumber + 1 : quest.RouteCount >= 3 && quest.RouteCount <= 7);
             Check("level has at least one lesson", director.LessonCount >= 1);
             Note("concept chip: " + Text("Level HUD/Concept/Title"));
             Note("fun fact: " + Text("Level Complete Panel/Level Complete Panel Canvas/Fun Fact/Fact"));

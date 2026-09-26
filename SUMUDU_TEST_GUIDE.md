@@ -27,5 +27,5 @@ The game reads `Dino Net/Assets/Resources/telemetry.json` (`url`, `apiKey`, `ena
 
 ## Not verified
 - Nothing has been tested in the headset or as a standalone Quest build (editor Play Mode only, no console errors).
-- `PlaytestDriver` now accepts 3–6 route nodes for levels 5+, but its orb-teleport flow hasn't been run against the new mechanics (blocked roads, gate, lost packet).
+- `PlaytestDriver` now accepts 3–7 route nodes for levels 5+, but its orb-teleport flow hasn't been run against the new mechanics (blocked roads, gate, lost packet).
 - Generated scenes (`Level5–10`, `Sandbox`) come from `DinoNet > Build …` menu items in `LevelSceneBuilder`; rebuild rather than hand-edit.
