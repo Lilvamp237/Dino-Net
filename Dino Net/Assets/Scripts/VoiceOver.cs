@@ -83,14 +83,22 @@ namespace DinoNet
             return sb.ToString().Trim();
         }
 
-        public static void Speak(string text)
+        /// <summary>True while a line is still being spoken.</summary>
+        public static bool IsSpeaking => s_Source != null && s_Source.isPlaying;
+
+        /// <summary>
+        /// Speaks a line and reports how long it will take, so the caller can leave the matching
+        /// text on screen until the voice has finished instead of talking over itself.
+        /// Returns 0 when the line has no recording or the voice is switched off.
+        /// </summary>
+        public static float Speak(string text)
         {
             if (!Enabled || string.IsNullOrWhiteSpace(text))
-                return;
+                return 0f;
 
             var clip = Resources.Load<AudioClip>("VO/" + Slug(text));
             if (clip == null)
-                return;
+                return 0f;
 
             if (s_Source == null)
             {
@@ -105,6 +113,7 @@ namespace DinoNet
             s_Source.Stop();
             s_Source.clip = clip;
             s_Source.Play();
+            return clip.length;
         }
 
         public static void Stop()

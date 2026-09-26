@@ -45,6 +45,9 @@ namespace DinoNet
         [SerializeField, Tooltip("Hidden while a question is up. The HUD sits closer to the eye than this panel and would otherwise draw straight through it.")]
         GameObject m_HudRoot;
 
+        [SerializeField, Tooltip("Appears while a message is being read out. Tapping it moves straight on for a child who has already understood.")]
+        GameObject m_SkipButton;
+
         [Header("Pacing")]
         [SerializeField, Tooltip("How long the well-done message stays up before the route continues.")]
         float m_CorrectHold = 2.6f;
@@ -54,6 +57,12 @@ namespace DinoNet
 
         [SerializeField, Tooltip("After this many wrong picks the safe choice starts glowing, so nobody can get stuck.")]
         int m_NudgeAfterMistakes = 2;
+
+        [SerializeField, Tooltip("Breathing room after the voice finishes reading the feedback.")]
+        float m_PauseAfterSpeech = 0.7f;
+
+        [SerializeField, Tooltip("How long a message must have been up before it can be skipped, so a quick second tap cannot blow straight past it.")]
+        float m_SkipAfterSeconds = 0.8f;
 
         [Header("Audio")]
         [SerializeField]
@@ -73,6 +82,9 @@ namespace DinoNet
         int m_Mistakes;
         int m_Chosen = -1;
         bool m_Settled;
+        float m_Spoken;
+        bool m_Skipped;
+        bool m_Suspended;
         Coroutine m_Routine;
 
         /// <summary>Raised once the child has made the safe choice and the route may continue.</summary>
@@ -194,8 +206,12 @@ namespace DinoNet
             if (m_HudRoot != null)
                 m_HudRoot.SetActive(false);
 
+            if (m_SkipButton != null)
+                m_SkipButton.SetActive(false);
+
             PanelAnchor.PlaceInFront(gameObject);
             VoiceOver.Speak(lesson.speaker + " " + lesson.prompt);
+            m_Spoken = 0f;
         }
 
         public void Hide()
@@ -208,8 +224,50 @@ namespace DinoNet
             if (m_Body != null)
                 m_Body.SetActive(false);
 
+            if (m_SkipButton != null)
+                m_SkipButton.SetActive(false);
+
             if (wasOpen && m_HudRoot != null)
                 m_HudRoot.SetActive(true);
+        }
+
+        /// <summary>
+        /// Puts the question out of sight while something else takes over the view - the pause
+        /// menu - without answering it or handing the HUD back. Calling it with false brings the
+        /// same question back exactly as it was.
+        /// </summary>
+        public void SetSuspended(bool suspended)
+        {
+            if (m_Body == null)
+                return;
+
+            if (suspended)
+            {
+                if (!m_Body.activeSelf)
+                    return;
+
+                m_Suspended = true;
+                m_Body.SetActive(false);
+
+                if (m_SkipButton != null)
+                    m_SkipButton.SetActive(false);
+            }
+            else if (m_Suspended)
+            {
+                m_Suspended = false;
+                m_Body.SetActive(true);
+                PanelAnchor.PlaceInFront(gameObject);
+            }
+        }
+
+        /// <summary>
+        /// Wired to the skip button: ends the current message early for a child who has already
+        /// got the point, instead of making them sit through the whole recording.
+        /// </summary>
+        public void Skip()
+        {
+            m_Skipped = true;
+            VoiceOver.Stop();
         }
 
         /// <summary>Wired to each option button. Public so the level tests can drive it directly.</summary>
@@ -241,7 +299,7 @@ namespace DinoNet
                 }
 
                 Play(m_CorrectClip);
-                VoiceOver.Speak(m_Lesson.correctFeedback);
+                m_Spoken = VoiceOver.Speak(m_Lesson.correctFeedback);
                 Restart(FinishRoutine());
                 return;
             }
@@ -256,21 +314,21 @@ namespace DinoNet
             }
 
             Play(m_WrongClip);
-            VoiceOver.Speak(option.wrongFeedback);
+            m_Spoken = VoiceOver.Speak(option.wrongFeedback);
             Mistaken?.Invoke(m_Lesson, option);
             Restart(RetryRoutine());
         }
 
         IEnumerator FinishRoutine()
         {
-            yield return new WaitForSeconds(m_CorrectHold);
+            yield return Hold(m_CorrectHold);
             Hide();
             Passed?.Invoke(m_Lesson);
         }
 
         IEnumerator RetryRoutine()
         {
-            yield return new WaitForSeconds(m_RetryDelay);
+            yield return Hold(m_RetryDelay);
 
             m_Chosen = -1;
             for (var i = 0; i < m_Options.Length; i++)
@@ -286,6 +344,35 @@ namespace DinoNet
             }
 
             SetInteractable(true);
+        }
+
+        /// <summary>
+        /// Waits at least <paramref name="seconds"/>, and longer if the voice is still reading the
+        /// message out, so feedback is never cut off part-way through - unless the child taps the
+        /// skip button, which ends the wait straight away.
+        /// </summary>
+        IEnumerator Hold(float seconds)
+        {
+            m_Skipped = false;
+            var target = Mathf.Max(seconds, m_Spoken + m_PauseAfterSpeech);
+            var elapsed = 0f;
+            var skipShown = false;
+
+            while (!m_Skipped && (elapsed < target || VoiceOver.IsSpeaking))
+            {
+                elapsed += Time.deltaTime;
+
+                if (!skipShown && elapsed >= m_SkipAfterSeconds && m_SkipButton != null)
+                {
+                    skipShown = true;
+                    m_SkipButton.SetActive(true);
+                }
+
+                yield return null;
+            }
+
+            if (m_SkipButton != null)
+                m_SkipButton.SetActive(false);
         }
 
         void Restart(IEnumerator routine)

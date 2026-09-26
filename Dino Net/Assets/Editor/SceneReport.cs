@@ -126,8 +126,25 @@ namespace DinoNetEditor
             Transform body;
             string subject;
 
-            // A negative index renders the completion panel with its reward instead of a question.
-            if (lessonIndex < 0)
+            // -2 renders the pause menu.
+            if (lessonIndex == -2)
+            {
+                var pause = Find("Pause Panel/Pause Panel Canvas");
+                if (pause == null)
+                    return "ERROR no pause panel in " + sceneName;
+
+                pause.transform.parent.gameObject.SetActive(true);
+                pause.SetActive(true);
+
+                var pauseHud = Find("Level HUD");
+                if (pauseHud != null)
+                    pauseHud.SetActive(false);
+
+                body = pause.transform;
+                subject = "the pause menu";
+            }
+            // -1 renders the completion panel with its reward instead of a question.
+            else if (lessonIndex < 0)
             {
                 var complete = Find("Level Complete Panel/Level Complete Panel Canvas");
                 if (complete == null)
@@ -156,6 +173,13 @@ namespace DinoNetEditor
 
                 var lesson = lessons.GetArrayElementAtIndex(lessonIndex).objectReferenceValue as NetworkLesson;
                 panel.Show(lesson);
+
+                // The skip button only appears part-way through a message at runtime; force it on
+                // so the preview shows the panel at its fullest.
+                var skip = Find("Decision Panel/Decision Panel Canvas/Got It Button");
+                if (skip != null)
+                    skip.SetActive(true);
+
                 body = panel.transform.GetChild(0);
                 subject = lesson.name;
             }

@@ -69,6 +69,9 @@ namespace DinoNet
         public event Action LevelFailed;
 
         public LevelState State { get; private set; } = LevelState.Waiting;
+
+        /// <summary>False for the tutorial, which runs without a countdown.</summary>
+        public bool UsesTimer => m_UseTimer;
         public int LevelNumber => m_LevelNumber;
         public float TimeRemaining { get; private set; }
 

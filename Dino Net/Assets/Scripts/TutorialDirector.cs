@@ -7,7 +7,8 @@ namespace DinoNet
     /// <summary>
     /// Walks a child through one complete delivery, explaining the networking idea in plain
     /// words. Every step waits for something the child actually did - picking the packet up,
-    /// reaching a node, seeing the firefly search - rather than running on a timer.
+    /// reaching a node, seeing the firefly search - rather than running on a timer, and each
+    /// spoken line is allowed to finish before the next one replaces it.
     /// </summary>
     public class TutorialDirector : MonoBehaviour
     {
@@ -40,6 +41,12 @@ namespace DinoNet
         [Header("Pacing")]
         [SerializeField, Tooltip("Shortest time a line stays up before the next one can replace it, so lines aren't missed.")]
         float m_MinimumReadSeconds = 2.5f;
+
+        [SerializeField, Tooltip("Extra time per character, so a long sentence stays up longer than a short one.")]
+        float m_SecondsPerCharacter = 0.045f;
+
+        [SerializeField, Tooltip("Breathing room after the voice finishes a line before the next one appears.")]
+        float m_PauseAfterSpeech = 0.7f;
 
         [Header("Audio")]
         [SerializeField]
@@ -197,12 +204,19 @@ namespace DinoNet
             if (m_PanelText != null)
                 m_PanelText.text = line;
 
-            VoiceOver.Speak(line);
+            var spoken = VoiceOver.Speak(line);
 
             if (m_AudioSource != null && m_StepClip != null)
                 m_AudioSource.PlayOneShot(m_StepClip);
 
-            yield return new WaitForSeconds(m_MinimumReadSeconds);
+            // Hold the line for as long as it takes to say, or to read if it has no recording.
+            var reading = m_MinimumReadSeconds + line.Length * m_SecondsPerCharacter;
+            var speaking = spoken > 0f ? spoken + m_PauseAfterSpeech : 0f;
+            yield return new WaitForSeconds(Mathf.Max(reading, speaking));
+
+            // Safety net: never replace a line while the voice is still mid-word.
+            while (VoiceOver.IsSpeaking)
+                yield return null;
         }
 
         void OnQuestStarted() { }

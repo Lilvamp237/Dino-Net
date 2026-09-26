@@ -160,6 +160,7 @@ namespace DinoNetEditor
             AddEnvironmentColliders();
             ClearSpawnOverlaps();
             TidyEditModeBanners();
+            CalmAmbience();
             AddFireflyTrail();
             AddArrivalReactions();
             var source = SetUpSourceDino();
@@ -177,6 +178,7 @@ namespace DinoNetEditor
             so.ApplyModifiedPropertiesWithoutUndo();
 
             WireHudButtons(hud, manager, null);
+            BuildPauseMenu(manager);
             AddRoutePresenter(quest, source);
             WireConnections(quest, null);
             FixPlayerCollider();
@@ -205,6 +207,7 @@ namespace DinoNetEditor
             AddEnvironmentColliders();
             ClearSpawnOverlaps();
             TidyEditModeBanners();
+            CalmAmbience();
             AddFireflyTrail();
             AddArrivalReactions();
             var source = SetUpSourceDino();
@@ -223,6 +226,7 @@ namespace DinoNetEditor
             so.ApplyModifiedPropertiesWithoutUndo();
 
             WireHudButtons(hud, manager, null);
+            BuildPauseMenu(manager);
             AddRoutePresenter(quest, source);
             WireConnections(quest, decoy);
             FixPlayerCollider();
@@ -289,6 +293,8 @@ namespace DinoNetEditor
                 if (go != null)
                     Object.DestroyImmediate(go);
             }
+
+            CalmAmbience();
 
             // No hazards in free play: a calm place to experiment.
             foreach (var zone in Object.FindObjectsByType<DangerZone>(FindObjectsInactive.Include, FindObjectsSortMode.None))
@@ -1029,6 +1035,45 @@ namespace DinoNetEditor
         /// The quest and danger banners are switched off by their own scripts at runtime, but
         /// they sit visible in the editor. Start them hidden so the scene reads cleanly.
         /// </summary>
+        /// <summary>
+        /// The jungle bed is an eleven second recording. Looped, it drops the same bird call into
+        /// the child's ears every eleven seconds, and it is a flat 2D source, so it sounds like it
+        /// is right by their head. This turns it into an occasional distant swell instead, and
+        /// silences anything else rigged to play a celebration the moment the scene loads.
+        /// </summary>
+        static void CalmAmbience()
+        {
+            foreach (var source in Object.FindObjectsByType<AudioSource>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (source == null)
+                    continue;
+
+                var clip = source.clip;
+                var clipName = clip != null ? clip.name.ToLowerInvariant() : string.Empty;
+
+                if (source.gameObject.name == "Ambience" || clipName.Contains("amazon"))
+                {
+                    source.playOnAwake = false;
+                    source.loop = true;         // a swell may outlast the short recording
+                    source.volume = 0f;
+                    source.spatialBlend = 0f;   // a mood bed, not something in the world
+
+                    if (source.GetComponent<AmbienceCycler>() == null)
+                        source.gameObject.AddComponent<AmbienceCycler>();
+
+                    Debug.Log("[DinoNet] Ambience on " + source.gameObject.name + " now plays in occasional swells.");
+                    continue;
+                }
+
+                // A victory fanfare belongs at the end of a level, not at the start of one.
+                if (source.playOnAwake && (clipName.Contains("fanfare") || clipName.Contains("success")))
+                {
+                    source.playOnAwake = false;
+                    Debug.Log("[DinoNet] Stopped " + source.gameObject.name + " from playing '" + clip.name + "' on load.");
+                }
+            }
+        }
+
         static void TidyEditModeBanners()
         {
             var quest = GameObject.Find("Quest Banner");
@@ -1306,6 +1351,80 @@ namespace DinoNetEditor
             }
         }
 
+        /// <summary>
+        /// Builds the pause button that rides in the low corner of the view, and the little menu
+        /// it opens. Without this there is no way out of a level except finishing or failing it.
+        /// </summary>
+        static void BuildPauseMenu(LevelManager manager)
+        {
+            var cam = Camera.main;
+            var root = new GameObject("Pause Menu");
+
+            // A plain-Transform anchor holds the canvas, because moving a RectTransform directly
+            // routes through anchoredPosition and lands the button metres from where it belongs.
+            var anchor = new GameObject("Pause Button");
+            anchor.transform.SetParent(root.transform, false);
+
+            var face = new GameObject("Pause Button Canvas");
+            face.transform.SetParent(anchor.transform, false);
+            var canvas = face.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+            face.AddComponent<TrackedDeviceGraphicRaycaster>();
+            var faceRt = face.GetComponent<RectTransform>();
+            faceRt.sizeDelta = new Vector2(300f, 140f);
+            faceRt.localScale = Vector3.one * 0.0016f;
+
+            var go = new GameObject("Button", typeof(Image), typeof(Button));
+            go.transform.SetParent(face.transform, false);
+            var buttonRt = go.GetComponent<RectTransform>();
+            buttonRt.anchorMin = Vector2.zero;
+            buttonRt.anchorMax = Vector2.one;
+            buttonRt.offsetMin = Vector2.zero;
+            buttonRt.offsetMax = Vector2.zero;
+
+            var image = go.GetComponent<Image>();
+            image.color = new Color(0.06f, 0.1f, 0.18f, 0.88f);
+
+            var button = go.GetComponent<Button>();
+            button.targetGraphic = image;
+
+            // The two bars of a pause glyph, so it reads without being able to read.
+            foreach (var x in new[] { -96f, -64f })
+            {
+                var bar = new GameObject("Bar", typeof(Image));
+                bar.transform.SetParent(go.transform, false);
+                var barRt = bar.GetComponent<RectTransform>();
+                barRt.anchoredPosition = new Vector2(x, 0f);
+                barRt.sizeDelta = new Vector2(18f, 58f);
+                var barImage = bar.GetComponent<Image>();
+                barImage.color = Color.white;
+                barImage.raycastTarget = false;
+            }
+
+            var label = Label(go.transform, "Label", "Pause", 52, TextAlignmentOptions.Center, Vector4.zero);
+            label.raycastTarget = false;
+            var labelRt = label.GetComponent<RectTransform>();
+            labelRt.offsetMin = new Vector2(120f, 0f);
+            labelRt.offsetMax = new Vector2(-12f, 0f);
+
+            var panel = BuildResultPanel(cam.transform, "Pause Panel", "Paused", new Color(0.06f, 0.12f, 0.24f, 0.94f),
+                new[] { "Return to Game", "Return to Main Menu" }, out var panelButtons, out _,
+                height: 520f, firstButtonY: -250f);
+            panel.SetActive(false);
+
+            var menu = root.AddComponent<PauseMenu>();
+            var so = new SerializedObject(menu);
+            so.FindProperty("m_Level").objectReferenceValue = manager;
+            so.FindProperty("m_Button").objectReferenceValue = anchor;
+            so.FindProperty("m_Panel").objectReferenceValue = panel;
+            so.FindProperty("m_HudRoot").objectReferenceValue = FindByName("Level HUD");
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            Bind(button, menu, "Pause");
+            Bind(panelButtons[0], menu, "Resume");
+            Bind(panelButtons[1], menu, "ReturnToMainMenu");
+        }
+
         static void Bind(Button button, Object target, string method)
         {
             var so = new SerializedObject(button);
@@ -1473,6 +1592,8 @@ namespace DinoNetEditor
         {
             var path = k_SceneFolder + "MainMenu.unity";
             var scene = Duplicate(path);
+
+            CalmAmbience();
 
             // The menu keeps the world as a backdrop but none of the gameplay systems.
             foreach (var name in new[] { "DinoNet Systems", "Start Podium", "Data Packet Orb", "Quest Banner", "Guide Firefly" })

@@ -477,7 +477,7 @@ namespace DinoNetEditor
             canvas.renderMode = RenderMode.WorldSpace;
             body.AddComponent<TrackedDeviceGraphicRaycaster>();
             var rt = body.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(1160f, 800f);
+            rt.sizeDelta = new Vector2(1160f, 880f);
             rt.localScale = Vector3.one * 0.0016f;
 
             Fill(body.transform, "Background", new Color(0.04f, 0.09f, 0.16f, 0.93f));
@@ -485,7 +485,11 @@ namespace DinoNetEditor
             var conceptTag = TopLabel(body.transform, "Concept", "", 34, -26f, 50f, k_Ask);
             var speaker = TopLabel(body.transform, "Speaker", "", 38, -80f, 56f, new Color(0.85f, 0.9f, 1f));
             var prompt = TopLabel(body.transform, "Prompt", "", 52, -140f, 130f, Color.white);
-            var feedback = TopLabel(body.transform, "Feedback", "", 40, -672f, 110f, Color.white);
+            var feedback = TopLabel(body.transform, "Feedback", "", 40, -666f, 96f, Color.white);
+
+            // Shown once a message has been up for a moment, so a child who already understands
+            // does not have to sit through the whole recording.
+            var skip = BuildSkipButton(body.transform);
 
             var options = new DecisionPanel.OptionView[2];
             options[0] = BuildOption(body.transform, "Option A", -268f);
@@ -508,6 +512,7 @@ namespace DinoNetEditor
             var so = new SerializedObject(panel);
             so.FindProperty("m_Body").objectReferenceValue = body;
             so.FindProperty("m_HudRoot").objectReferenceValue = FindAnywhere("Level HUD");
+            so.FindProperty("m_SkipButton").objectReferenceValue = skip.gameObject;
             so.FindProperty("m_ConceptTag").objectReferenceValue = conceptTag;
             so.FindProperty("m_Speaker").objectReferenceValue = speaker;
             so.FindProperty("m_Prompt").objectReferenceValue = prompt;
@@ -530,8 +535,50 @@ namespace DinoNetEditor
 
             so.ApplyModifiedPropertiesWithoutUndo();
 
+            Bind(skip, panel, "Skip");
+
+            skip.gameObject.SetActive(false);
             body.SetActive(false);
             return panel;
+        }
+
+        /// <summary>The small "Got it!" button that cuts a message short.</summary>
+        static Button BuildSkipButton(Transform parent)
+        {
+            var go = new GameObject("Got It Button", typeof(Image), typeof(Button));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 1f);
+            rt.anchorMax = new Vector2(0.5f, 1f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = new Vector2(0f, -806f);
+            rt.sizeDelta = new Vector2(320f, 66f);
+
+            var image = go.GetComponent<Image>();
+            image.color = new Color(1f, 1f, 1f, 0.82f);
+
+            var button = go.GetComponent<Button>();
+            button.targetGraphic = image;
+
+            var label = Label(go.transform, "Label", "Got it!", 36, TextAlignmentOptions.Center, Vector4.zero);
+            label.color = new Color(0.08f, 0.1f, 0.12f);
+            label.raycastTarget = false;
+            return button;
+        }
+
+        /// <summary>Points a button at a method on a component, the way Unity's inspector would.</summary>
+        static void Bind(Button button, Object target, string method)
+        {
+            var so = new SerializedObject(button);
+            var calls = so.FindProperty("m_OnClick.m_PersistentCalls.m_Calls");
+            calls.arraySize = 1;
+            var call = calls.GetArrayElementAtIndex(0);
+            call.FindPropertyRelative("m_Target").objectReferenceValue = target;
+            call.FindPropertyRelative("m_TargetAssemblyTypeName").stringValue = target.GetType().AssemblyQualifiedName;
+            call.FindPropertyRelative("m_MethodName").stringValue = method;
+            call.FindPropertyRelative("m_Mode").enumValueIndex = 1;   // void
+            call.FindPropertyRelative("m_CallState").enumValueIndex = 2;   // runtime only
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>

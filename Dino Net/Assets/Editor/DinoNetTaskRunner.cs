@@ -78,6 +78,11 @@ namespace DinoNetEditor
                         Write("OK all scenes built");
                         break;
 
+                    case "sandbox":
+                        LevelSceneBuilder.BuildSandbox();
+                        Write("OK sandbox built");
+                        break;
+
                     case "level":
                         LevelSceneBuilder.BuildLevel(int.Parse(argument));
                         Write("OK level " + argument + " built");

@@ -7,7 +7,8 @@ namespace DinoNet
     /// dino look frozen (and the friendly ones look like they were attacking). This picks the
     /// right clips: friendly node dinos idle, look around, shuffle, turn to greet the child, and
     /// jump for joy when the packet arrives; hazard dinos idle and give a (harmless) roar as a
-    /// warning; roaming dinos get footsteps and occasional grunts on top of their walking.
+    /// warning; roaming dinos get footsteps and occasional grunts on top of their walking. Idle
+    /// noises share one level-wide budget, so a crowded scene is not a noisy one.
     /// </summary>
     public class DinoAnimator : MonoBehaviour
     {
@@ -17,6 +18,17 @@ namespace DinoNet
             Hazard,
             Wanderer,
         }
+
+        [Header("Idle noises")]
+        [SerializeField, Tooltip("Gap between idle dinosaur noises anywhere in the level, in seconds. This budget is shared by every dinosaur, so the count on screen does not change how often the player hears one.")]
+        Vector2 m_AmbientVocalGap = new Vector2(100f, 200f);
+
+        [SerializeField, Tooltip("Quiet stretch after a level loads before any idle noise is allowed.")]
+        float m_AmbientVocalDelay = 40f;
+
+        // Shared by every dinosaur in the level. Each one used to keep its own 5-24s timer, so a
+        // dozen of them put a grunt or a roar in the child's ear every couple of seconds.
+        static float s_NextAmbientVocal;
 
         Animation m_Anim;
         Role m_Role;
@@ -81,6 +93,20 @@ namespace DinoNet
             }
 
             m_NextAction = Time.time + Random.Range(2f, 9f);
+            s_NextAmbientVocal = Mathf.Max(s_NextAmbientVocal, Time.time + m_AmbientVocalDelay);
+        }
+
+        /// <summary>
+        /// Claims the level's one idle-noise slot, or returns false if a dinosaur has made a noise
+        /// too recently. The animation still plays either way - only the sound is rationed.
+        /// </summary>
+        bool TakeAmbientVocalSlot()
+        {
+            if (Time.time < s_NextAmbientVocal)
+                return false;
+
+            s_NextAmbientVocal = Time.time + Random.Range(m_AmbientVocalGap.x, m_AmbientVocalGap.y);
+            return true;
         }
 
         void Update()
@@ -121,7 +147,8 @@ namespace DinoNet
                 if (distance < 26f && !string.IsNullOrEmpty(m_Attack))
                 {
                     PlayOnce(m_Attack);
-                    Sfx.PlayAt("roar", transform.position, 0.55f, Random.Range(1.05f, 1.3f), 32f);
+                    if (TakeAmbientVocalSlot())
+                        Sfx.PlayAt("roar", transform.position, 0.5f, Random.Range(1.05f, 1.3f), 32f);
                 }
 
                 return;
@@ -144,9 +171,10 @@ namespace DinoNet
             else if (roll < 0.85f && !string.IsNullOrEmpty(m_Jump) && distance < 14f)
             {
                 PlayOnce(m_Jump);
-                Sfx.PlayAt(m_Big > 0f ? "grunt_large" : "grunt_small", transform.position, 0.4f, Random.Range(1.1f, 1.4f));
+                if (TakeAmbientVocalSlot())
+                    Sfx.PlayAt(m_Big > 0f ? "grunt_large" : "grunt_small", transform.position, 0.4f, Random.Range(1.1f, 1.4f));
             }
-            else
+            else if (TakeAmbientVocalSlot())
             {
                 Sfx.PlayAt(m_Big > 0f ? "grunt_large" : "grunt_small", transform.position, 0.35f, Random.Range(0.9f, 1.2f));
             }
@@ -170,7 +198,7 @@ namespace DinoNet
                 if (!m_PlayerNear)
                 {
                     m_PlayerNear = true;
-                    if (m_Node != null && !m_Node.IsCompleted)
+                    if (m_Node != null && !m_Node.IsCompleted && TakeAmbientVocalSlot())
                         Sfx.PlayAt(m_Big > 0f ? "grunt_large" : "grunt_small", transform.position, 0.45f, 1.25f);
                 }
             }
@@ -205,7 +233,7 @@ namespace DinoNet
             if (Time.time >= m_NextAction)
             {
                 m_NextAction = Time.time + Random.Range(10f, 24f);
-                if (distance < 22f)
+                if (distance < 22f && TakeAmbientVocalSlot())
                     Sfx.PlayAt(m_Big > 0f ? "grunt_large" : "grunt_small", transform.position, 0.35f, Random.Range(0.85f, 1.15f));
             }
         }
