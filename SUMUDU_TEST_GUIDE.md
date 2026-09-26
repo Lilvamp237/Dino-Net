@@ -16,7 +16,7 @@ node server.js          # http://localhost:3000
 See `dashboard/README.md` (teacher password, parent login by family code, optional `ANTHROPIC_API_KEY` for AI summaries).
 
 The game reads `Dino Net/Assets/Resources/telemetry.json` (`url`, `apiKey`, `enabled`).
-**On Quest, `localhost` is the headset** – set `url` to your PC's LAN IP (e.g. `http://192.168.x.x:3000`). Plain HTTP on a standalone Android build may need *Player Settings → Allow downloads over HTTP*. Over PC Link (editor play) `localhost` works.
+**On Quest, `localhost` is the headset** – set `url` to your PC's LAN IP (e.g. `http://192.168.x.x:3000`). Plain HTTP is already allowed (*Player Settings → Allow downloads over HTTP* = Always); switch it back for a release build. Over PC Link (editor play) `localhost` works.
 
 ## Test checklist
 1. Menu buttons all work; Choose Level lists 10 levels; My Progress shows stars.
@@ -27,5 +27,5 @@ The game reads `Dino Net/Assets/Resources/telemetry.json` (`url`, `apiKey`, `ena
 
 ## Not verified
 - Nothing has been tested in the headset or as a standalone Quest build (editor Play Mode only, no console errors).
-- `PlaytestDriver` route-count check (`RouteCount == LevelNumber + 1`) does not fit levels > 4.
+- `PlaytestDriver` now accepts 3–6 route nodes for levels 5+, but its orb-teleport flow hasn't been run against the new mechanics (blocked roads, gate, lost packet).
 - Generated scenes (`Level5–10`, `Sandbox`) come from `DinoNet > Build …` menu items in `LevelSceneBuilder`; rebuild rather than hand-edit.
